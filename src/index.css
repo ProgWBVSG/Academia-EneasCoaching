@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --color-oro: #B08A45;
+  --color-oro-claro: #E5C580;
+  --color-oro-suave: #F4ECDC;
+  --color-crema: #FAF8F3;
+  --color-tinta: #1C1A17;
+  --color-gris: #6B6458;
+  --color-linea: #E8E1D3;
+  --font-display: 'Montserrat', system-ui, sans-serif;
+  --font-sans: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html, body { background: var(--color-crema); color: var(--color-tinta); }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  border-radius: 999px; font-weight: 600; font-size: .9rem;
+  padding: .7rem 1.4rem; transition: transform .15s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
+  cursor: pointer;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-oro { background: linear-gradient(135deg, #B08A45, #D6B06A 50%, #B08A45); color: #fff; box-shadow: 0 8px 22px rgba(176,138,69,.28); }
+.btn-oro:hover { box-shadow: 0 12px 28px rgba(176,138,69,.38); }
+.btn-oscuro { background: var(--color-tinta); color: #fff; }
+.btn-borde { border: 1.5px solid var(--color-linea); background: #fff; color: var(--color-tinta); }
+.btn-borde:hover { border-color: var(--color-oro); }
+
+.tarjeta { background: #fff; border: 1px solid var(--color-linea); border-radius: 14px; }
+.campo {
+  width: 100%; border: 1.5px solid var(--color-linea); background: #fff; border-radius: 10px;
+  padding: .7rem .9rem; font-size: .95rem; color: var(--color-tinta); outline: none;
+}
+.campo:focus { border-color: var(--color-oro); }
+.etiqueta { font-family: var(--font-display); font-weight: 700; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--color-oro); }
+
+:focus-visible { outline: 2px solid var(--color-oro); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
