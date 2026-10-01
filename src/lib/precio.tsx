@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 // precio que tendrá después del lanzamiento.
 export const PRECIO_USD = 39;
 export const PRECIO_LISTA_USD = 59;
+// El precio de lanzamiento vale para las primeras 100 miembros; después pasa al de lista
+export const CUPO_LANZAMIENTO = 100;
 
 export type Moneda = 'USD' | 'ARS' | 'EUR';
 type Cotizacion = { ars: number | null; eur: number | null; actualizado: string | null };

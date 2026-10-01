@@ -6,7 +6,7 @@ import { useAuth } from '../lib/auth';
 import Eneagrama from '../components/Eneagrama';
 import { Campo, Error } from '../components/ui';
 
-const PROFESIONES = ['Ninguna, es para mí', 'Psicóloga/o', 'Coach', 'Terapeuta', 'Psicopedagoga/o', 'Docente', 'RRHH', 'Líder de equipo', 'Otra profesión'];
+const PROFESIONES = ['Ninguna, es para mí', 'Psicóloga/o', 'Coach', 'Terapeuta', 'Abogada/o', 'RRHH', 'Líder de equipo', 'Docente', 'Psicopedagoga/o', 'Ventas o atención al cliente', 'Otra profesión'];
 
 export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
   const { perfil, iniciar } = useAuth();

@@ -356,10 +356,12 @@ export default async function handler(req, res) {
 
     if (action === 'publico-info' && m === 'GET') {
       const [{ count: miembros }, { data: proximo }] = await Promise.all([
-        sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('estado', 'activa'),
+        sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('estado', 'activa').eq('rol', 'miembro'),
         sb.from('academia_eventos').select('titulo,inicio,tipo').gte('inicio', new Date().toISOString()).order('inicio').limit(1),
       ]);
-      return res.status(200).json({ miembros: miembros || 0, proximo: proximo?.[0] || null, precio_usd: 39 });
+      // Precio de lanzamiento USD 39 para las primeras 100 miembros activas; después USD 59
+      const lanzamiento = (miembros || 0) < 100;
+      return res.status(200).json({ miembros: miembros || 0, proximo: proximo?.[0] || null, precio_usd: lanzamiento ? 39 : 59, lanzamiento });
     }
 
     if (action === 'cotizacion' && m === 'GET') {
