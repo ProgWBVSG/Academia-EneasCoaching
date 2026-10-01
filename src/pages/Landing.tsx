@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen, CalendarDays, MessagesSquare, Users, Check, ArrowRight, ChevronDown, Play,
@@ -7,6 +7,8 @@ import {
 import Eneagrama from '../components/Eneagrama';
 import { useAuth } from '../lib/auth';
 import { usePrecio, SelectorMoneda, PRECIO_USD, PRECIO_LISTA_USD } from '../lib/precio';
+
+// Regla de diseño de esta página: todo centrado y sin etiquetas arriba de los títulos.
 
 const WHATSAPP = 'https://wa.me/5493515632496?text=' + encodeURIComponent('Hola Cecilia! Quiero saber más de la Academia.');
 const WEB = 'https://www.cecimentorcoach.com';
@@ -66,10 +68,10 @@ const INCLUYE = [
 ];
 
 const MES = [
-  { semana: 'Semana 1', titulo: 'Clase en vivo', texto: 'Un tema a fondo con Cecilia, con tiempo para preguntas.', vivo: true },
-  { semana: 'Semana 2', titulo: 'Reto de práctica', texto: 'Un ejercicio para probar con vos, con alguien de tu vida o en tu trabajo.' },
-  { semana: 'Semana 3', titulo: 'Casos en vivo', texto: 'Traés una situación real y la miramos juntas con el Eneagrama.', vivo: true },
-  { semana: 'Semana 4', titulo: 'Recurso nuevo', texto: 'Una lección, una meditación o un ejercicio que se suma a la Academia.' },
+  { titulo: 'Clase en vivo', texto: 'La primera semana, un tema a fondo con Cecilia y tiempo para preguntas.', vivo: true },
+  { titulo: 'Reto de práctica', texto: 'La segunda semana, un ejercicio para probar con vos, con alguien de tu vida o en tu trabajo.' },
+  { titulo: 'Casos en vivo', texto: 'La tercera semana, traés una situación real y la miramos juntas con el Eneagrama.', vivo: true },
+  { titulo: 'Recurso nuevo', texto: 'La cuarta semana se suma una lección, una meditación o un ejercicio.' },
 ];
 
 const PARA_VOS = [
@@ -104,6 +106,26 @@ const FAQ = [
   ['¿Puedo cancelar cuando quiera?', 'Sí. Es una suscripción mensual sin permanencia y la cancelás cuando quieras.'],
   ['¿Cómo pago desde fuera de Argentina?', 'Escribinos por WhatsApp y te pasamos la forma de pago para tu país.'],
 ];
+
+// Título y bajada de cada sección, siempre centrados
+function Encabezado({ titulo, texto, oscuro = false }: { titulo: ReactNode; texto?: ReactNode; oscuro?: boolean }) {
+  return (
+    <div className="flex flex-col items-center text-center gap-4 max-w-3xl mx-auto">
+      <h2 className="text-3xl md:text-4xl font-extrabold leading-tight">{titulo}</h2>
+      {texto && <p className={`text-lg ${oscuro ? 'text-crema/75' : 'text-gris'}`}>{texto}</p>}
+    </div>
+  );
+}
+
+function Tarjeta({ icono: Icono, titulo, texto }: { icono: typeof BookOpen; titulo: string; texto: string }) {
+  return (
+    <div className="tarjeta p-6 flex flex-col items-center text-center gap-3">
+      <span className="w-12 h-12 rounded-xl bg-oro-suave text-oro flex items-center justify-center"><Icono className="w-5 h-5" /></span>
+      <h3 className="font-bold text-lg">{titulo}</h3>
+      <p className="text-gris text-[15px] leading-relaxed">{texto}</p>
+    </div>
+  );
+}
 
 function VideoCecilia() {
   const embed = VSL ? urlEmbed(VSL) : null;
@@ -165,14 +187,13 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero con video */}
+      {/* Promesa y video */}
       <section className="max-w-4xl mx-auto px-5 pt-12 pb-16 md:pt-16 md:pb-20 flex flex-col items-center text-center gap-6">
-        <span className="etiqueta">Academia de Eneagrama · Cecilia B. Sánchez</span>
         <h1 className="text-[2.1rem] md:text-[3.3rem] leading-[1.08] font-extrabold tracking-tight">
           Entendé por qué hacés lo que hacés. <span className="text-oro">Y por qué los demás hacen lo que hacen.</span>
         </h1>
         <p className="text-lg text-gris max-w-2xl">
-          El Eneagrama desde cero, para usarlo con vos misma, en tus vínculos y en tu trabajo. Cursos cortos, dos encuentros en vivo por mes con Cecilia y una comunidad que lo practica.
+          El Eneagrama desde cero, para usarlo con vos misma, en tus vínculos y en tu trabajo. Cursos cortos, dos encuentros en vivo por mes con Cecilia B. Sánchez y una comunidad que lo practica.
         </p>
         <div className="w-full mt-2"><VideoCecilia /></div>
         <div className="flex flex-wrap justify-center items-center gap-3 mt-2">
@@ -195,73 +216,57 @@ export default function Landing() {
 
       {/* Escenas */}
       <section className="bg-tinta text-crema">
-        <div className="max-w-6xl mx-auto px-5 py-16 md:py-20 grid md:grid-cols-[.9fr_1.1fr] gap-10 items-start">
-          <div className="flex flex-col gap-4">
-            <span className="etiqueta !text-oro-claro">Puede que te pase</span>
-            <h2 className="text-3xl md:text-4xl font-extrabold leading-tight">Hay cosas que se repiten, y no es por falta de voluntad</h2>
-          </div>
-          <div className="flex flex-col gap-6">
-            <ul className="flex flex-col gap-4 text-crema/85">
-              {ESCENAS.map(e => (
-                <li key={e} className="flex gap-3"><span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-oro shrink-0" />{e}</li>
-              ))}
-            </ul>
-            <p className="text-crema text-lg border-l-2 border-oro pl-4">
-              El Eneagrama es el mapa que falta. Describe nueve formas de mirar el mundo, qué mueve a cada una y dónde se traba. Cuando reconocés la tuya, esas escenas dejan de ser un misterio.
-            </p>
-          </div>
+        <div className="max-w-3xl mx-auto px-5 py-16 md:py-20 flex flex-col items-center text-center gap-10">
+          <Encabezado titulo="Hay cosas que se repiten, y no es por falta de voluntad" />
+          <ul className="flex flex-col items-center gap-5 text-crema/85 text-lg">
+            {ESCENAS.map(e => (
+              <li key={e} className="flex flex-col items-center gap-5">
+                <span className="w-1.5 h-1.5 rounded-full bg-oro" aria-hidden />
+                <span className="max-w-2xl">{e}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-crema text-xl font-display font-bold leading-snug max-w-2xl">
+            El Eneagrama es el mapa que falta. Describe nueve formas de mirar el mundo, qué mueve a cada una y dónde se traba. Cuando reconocés la tuya, esas escenas dejan de ser un misterio.
+          </p>
         </div>
       </section>
 
       {/* Qué es el Eneagrama, interactivo */}
-      <section id="eneagrama" className="max-w-6xl mx-auto px-5 py-20 scroll-mt-16 grid md:grid-cols-2 gap-12 items-center">
-        <div className="flex flex-col gap-5 order-2 md:order-1">
-          <span className="etiqueta">Si nunca escuchaste hablar del Eneagrama</span>
-          <h2 className="text-3xl md:text-4xl font-extrabold leading-tight">Nueve tipos, nueve motivaciones distintas</h2>
-          <p className="text-gris">No es un horóscopo ni una etiqueta. Describe lo que te mueve por dentro, no solo lo que hacés. Dos personas pueden reaccionar igual por motivos opuestos, y ahí está la clave para entenderlas.</p>
-          <div className="tarjeta p-6 flex flex-col gap-3" aria-live="polite">
-            <p className="font-display font-extrabold text-xl"><span className="text-oro">Tipo {tipo}</span> · {t.nombre}</p>
-            <p className="text-[15px]"><span className="font-semibold">Lo que la mueve:</span> <span className="text-gris">{t.mueve}</span></p>
-            <p className="text-[15px]"><span className="font-semibold">Dónde se traba:</span> <span className="text-gris">{t.traba}</span></p>
-            <p className="text-[15px] bg-oro-suave rounded-lg px-3 py-2">{t.escena}</p>
-          </div>
-          <p className="text-sm text-gris">Tocá un número del símbolo para ver cada tipo.</p>
-        </div>
-        <div className="relative flex justify-center text-tinta order-1 md:order-2">
+      <section id="eneagrama" className="max-w-4xl mx-auto px-5 py-20 scroll-mt-16 flex flex-col items-center gap-8">
+        <Encabezado
+          titulo="Nueve tipos, nueve motivaciones distintas"
+          texto="No es un horóscopo ni una etiqueta. Describe lo que te mueve por dentro, no solo lo que hacés. Dos personas pueden reaccionar igual por motivos opuestos, y ahí está la clave para entenderlas." />
+        <div className="relative flex justify-center text-tinta">
           <div className="absolute inset-8 rounded-full bg-oro-suave blur-2xl opacity-80" aria-hidden />
-          <div className="relative"><Eneagrama tam={400} resaltar={tipo} onElegir={setTipo} /></div>
+          <div className="relative"><Eneagrama tam={380} resaltar={tipo} onElegir={setTipo} /></div>
+        </div>
+        <p className="text-sm text-gris text-center -mt-4">Tocá un número para ver cada tipo.</p>
+        <div className="tarjeta p-6 md:p-8 flex flex-col items-center text-center gap-3 w-full max-w-2xl" aria-live="polite">
+          <p className="font-display font-extrabold text-2xl"><span className="text-oro">Tipo {tipo}</span>, {t.nombre.toLowerCase()}</p>
+          <p className="text-[15px]"><span className="font-semibold">Lo que la mueve:</span> <span className="text-gris">{t.mueve}</span></p>
+          <p className="text-[15px]"><span className="font-semibold">Dónde se traba:</span> <span className="text-gris">{t.traba}</span></p>
+          <p className="text-[15px] bg-oro-suave rounded-lg px-4 py-2.5">{t.escena}</p>
         </div>
       </section>
 
       {/* Tres usos */}
       <section className="bg-oro-suave">
         <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-10">
-          <div className="flex flex-col gap-3 max-w-2xl">
-            <span className="etiqueta">Para qué te sirve</span>
-            <h2 className="text-3xl md:text-4xl font-extrabold">Una herramienta que vas a usar en tres lugares</h2>
-          </div>
+          <Encabezado titulo="Una herramienta que vas a usar en tres lugares" />
           <div className="grid md:grid-cols-3 gap-4">
-            {USOS.map(({ icono: Icono, titulo, texto }) => (
-              <div key={titulo} className="tarjeta p-6 flex flex-col gap-3">
-                <span className="w-11 h-11 rounded-xl bg-oro-suave text-oro flex items-center justify-center"><Icono className="w-5 h-5" /></span>
-                <h3 className="font-bold text-lg">{titulo}</h3>
-                <p className="text-gris text-[15px] leading-relaxed">{texto}</p>
-              </div>
-            ))}
+            {USOS.map(u => <Tarjeta key={u.titulo} {...u} />)}
           </div>
         </div>
       </section>
 
       {/* El camino */}
-      <section className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-10">
-        <div className="flex flex-col gap-3 max-w-2xl">
-          <span className="etiqueta">Cómo vas a aprender</span>
-          <h2 className="text-3xl md:text-4xl font-extrabold">Empezás por vos y llegás a los demás</h2>
-        </div>
-        <ol className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-12">
+        <Encabezado titulo="Empezás por vos y llegás a los demás" texto="Así vas a aprender, a tu ritmo y acompañada." />
+        <ol className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {CAMINO.map((p, i) => (
-            <li key={p.titulo} className="flex flex-col gap-2 border-t-2 border-oro pt-4">
-              <span className="font-display font-extrabold text-oro text-sm tabular-nums">Paso {i + 1}</span>
+            <li key={p.titulo} className="flex flex-col items-center text-center gap-3">
+              <span className="w-11 h-11 rounded-full bg-tinta text-crema font-display font-extrabold flex items-center justify-center tabular-nums">{i + 1}</span>
               <h3 className="font-bold text-lg">{p.titulo}</h3>
               <p className="text-gris text-[15px] leading-relaxed">{p.texto}</p>
             </li>
@@ -271,56 +276,38 @@ export default function Landing() {
 
       {/* Qué incluye */}
       <section id="incluye" className="max-w-6xl mx-auto px-5 pb-20 scroll-mt-16 flex flex-col gap-10">
-        <div className="flex flex-col gap-3 max-w-2xl">
-          <span className="etiqueta">Qué incluye</span>
-          <h2 className="text-3xl md:text-4xl font-extrabold">Todo en un solo lugar, por una cuota mensual</h2>
-        </div>
+        <Encabezado titulo="Todo en un solo lugar, por una cuota mensual" />
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {INCLUYE.map(({ icono: Icono, titulo, texto }) => (
-            <div key={titulo} className="tarjeta p-6 flex flex-col gap-3">
-              <span className="w-11 h-11 rounded-xl bg-oro-suave text-oro flex items-center justify-center"><Icono className="w-5 h-5" /></span>
-              <h3 className="font-bold text-lg">{titulo}</h3>
-              <p className="text-gris text-[15px] leading-relaxed">{texto}</p>
-            </div>
-          ))}
+          {INCLUYE.map(x => <Tarjeta key={x.titulo} {...x} />)}
         </div>
       </section>
 
       {/* Para profesionales: laboratorio */}
       <section className="bg-tinta text-crema">
-        <div className="max-w-6xl mx-auto px-5 py-20 grid md:grid-cols-2 gap-12 items-center">
-          <div className="flex flex-col gap-4">
-            <span className="etiqueta !text-oro-claro">Si acompañás personas</span>
-            <h2 className="text-3xl md:text-4xl font-extrabold leading-tight">Practicá con una consultante que no sabés de qué tipo es</h2>
-            <p className="text-crema/80 text-lg">Para psicólogas, coaches, terapeutas, docentes y RRHH. La IA hace de consultante en una primera sesión. Vos preguntás, reflejás y formulás tu hipótesis. Al cerrar, te muestra el tipo real, las frases que lo delataban y qué pregunta te hubiera ayudado a confirmarlo.</p>
-            <p className="text-crema/70">Se suma a la ruta para profesionales y a los casos en vivo, donde Cecilia trabaja situaciones reales de consultorio.</p>
-          </div>
-          <div className="bg-crema text-tinta rounded-2xl p-5 flex flex-col gap-3 shadow-xl shadow-black/30">
-            <div className="flex items-center justify-between text-xs text-gris"><span>Sesión de práctica</span><span>Tipo oculto</span></div>
+        <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-10">
+          <Encabezado oscuro
+            titulo="Si acompañás personas, practicá con una consultante que no sabés de qué tipo es"
+            texto="Para psicólogas, coaches, terapeutas, docentes y RRHH. La IA hace de consultante en una primera sesión. Vos preguntás, reflejás y formulás tu hipótesis. Al cerrar, te muestra el tipo real, las frases que lo delataban y qué pregunta te hubiera ayudado a confirmarlo." />
+          <div className="bg-crema text-tinta rounded-2xl p-5 flex flex-col gap-3 shadow-xl shadow-black/30 w-full max-w-xl">
             <div className="self-end max-w-[85%] bg-tinta text-crema rounded-2xl rounded-br-sm px-4 py-2.5 text-sm">¿Qué sentiste cuando tu socia tomó esa decisión sin consultarte?</div>
             <div className="self-start max-w-[85%] bg-white border border-linea rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm">Nada grave, la verdad. Está bien, prefiero que no haya lío. Igual después me quedé ordenando papeles hasta tarde, que hacía rato que los tenía pendientes.</div>
             <div className="self-end max-w-[85%] bg-tinta text-crema rounded-2xl rounded-br-sm px-4 py-2.5 text-sm">Decís que está bien, pero te quedaste hasta tarde con otra cosa. ¿Qué no dijiste?</div>
-            <div className="mt-2 rounded-xl border border-oro/40 bg-oro-suave px-4 py-3 text-sm">
-              <p className="font-semibold text-oro">Devolución</p>
-              <p className="text-gris mt-1">Acertaste: tipo 9. "Está bien, prefiero que no haya lío" y el refugio en tareas secundarias eran las señales más claras.</p>
+            <div className="mt-2 rounded-xl border border-oro/40 bg-oro-suave px-4 py-3 text-sm text-center">
+              <p className="text-gris">Acertaste: era <strong className="text-tinta">tipo 9</strong>. "Está bien, prefiero que no haya lío" y el refugio en tareas secundarias eran las señales más claras.</p>
             </div>
           </div>
+          <p className="text-crema/70 text-center max-w-2xl">Se suma a la ruta para profesionales y a los casos en vivo, donde Cecilia trabaja situaciones reales de consultorio.</p>
         </div>
       </section>
 
       {/* Cómo es un mes */}
       <section id="mes" className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-10">
-        <div className="flex flex-col gap-3 max-w-2xl">
-          <span className="etiqueta">Cómo es un mes</span>
-          <h2 className="text-3xl md:text-4xl font-extrabold">Algo nuevo cada semana, dos encuentros en vivo</h2>
-          <p className="text-gris">Un ritmo fijo para que no quede en otro curso que empezaste y no terminaste.</p>
-        </div>
+        <Encabezado titulo="Algo nuevo cada semana, dos encuentros en vivo" texto="Un ritmo fijo para que no quede en otro curso que empezaste y no terminaste." />
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {MES.map(s => (
-            <div key={s.semana} className={`tarjeta p-5 flex flex-col gap-2 ${s.vivo ? '!border-oro' : ''}`}>
-              <span className={`text-xs font-semibold uppercase tracking-wider ${s.vivo ? 'text-oro' : 'text-gris'}`}>{s.semana}{s.vivo ? ' · en vivo' : ''}</span>
-              <h3 className="font-bold">{s.titulo}</h3>
-              <p className="text-gris text-sm">{s.texto}</p>
+            <div key={s.titulo} className={`tarjeta p-6 flex flex-col items-center text-center gap-2 ${s.vivo ? '!border-oro' : ''}`}>
+              <h3 className="font-bold text-lg">{s.titulo}</h3>
+              <p className="text-gris text-[15px]">{s.texto}</p>
             </div>
           ))}
         </div>
@@ -328,41 +315,35 @@ export default function Landing() {
 
       {/* Es para vos si */}
       <section className="bg-oro-suave">
-        <div className="max-w-4xl mx-auto px-5 py-20 flex flex-col gap-8">
-          <div className="flex flex-col gap-3 text-center items-center">
-            <span className="etiqueta">Para quién es</span>
-            <h2 className="text-3xl md:text-4xl font-extrabold">La Academia es para vos si te reconocés en alguna de estas</h2>
-          </div>
-          <ul className="grid sm:grid-cols-2 gap-3">
+        <div className="max-w-5xl mx-auto px-5 py-20 flex flex-col items-center gap-10">
+          <Encabezado titulo="La Academia es para vos si te reconocés en alguna de estas" />
+          <ul className="grid sm:grid-cols-2 gap-4 w-full">
             {PARA_VOS.map(p => (
-              <li key={p} className="tarjeta p-4 flex gap-3 text-[15px]"><Check className="w-5 h-5 text-oro shrink-0 mt-0.5" />{p}</li>
+              <li key={p} className="tarjeta p-5 flex flex-col items-center text-center gap-3 text-[15px]">
+                <Check className="w-5 h-5 text-oro" />{p}
+              </li>
             ))}
           </ul>
-          <div className="flex justify-center">
-            <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Sí, quiero sumarme <ArrowRight className="w-4 h-4" /></Link>
-          </div>
+          <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Sí, quiero sumarme <ArrowRight className="w-4 h-4" /></Link>
         </div>
       </section>
 
       {/* Cecilia y testimonios */}
-      <section className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-10">
-        <div className="tarjeta p-6 md:p-10 grid md:grid-cols-[220px_1fr] gap-8 items-center">
-          <img src="/cecilia.jpg" alt="Cecilia B. Sánchez" className="w-44 h-44 md:w-56 md:h-56 rounded-2xl object-cover mx-auto" />
-          <div className="flex flex-col gap-3">
-            <span className="etiqueta">Quién te acompaña</span>
-            <h2 className="text-2xl md:text-3xl font-extrabold">Cecilia B. Sánchez</h2>
-            <p className="text-gris">Coach ontológica, eneagramista y abogada. Trabaja con el Eneagrama hace 7 años, creó el método Eneascoaching, que integra Coaching Ontológico y Eneagrama, acompañó a más de 1.800 personas y forma profesionales en su Diplomatura en Eneagrama.</p>
-          </div>
+      <section className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-14">
+        <div className="flex flex-col items-center text-center gap-5 max-w-2xl">
+          <img src="/cecilia.jpg" alt="Cecilia B. Sánchez" className="w-44 h-44 md:w-52 md:h-52 rounded-full object-cover ring-4 ring-oro-suave" />
+          <h2 className="text-3xl md:text-4xl font-extrabold">Cecilia B. Sánchez</h2>
+          <p className="text-gris text-lg">Coach ontológica, eneagramista y abogada. Trabaja con el Eneagrama hace 7 años, creó el método Eneascoaching, que integra Coaching Ontológico y Eneagrama, acompañó a más de 1.800 personas y forma profesionales en su Diplomatura en Eneagrama.</p>
         </div>
-        <div className="flex flex-col gap-5">
-          <h3 className="font-display font-bold text-xl">Lo que dicen quienes trabajaron con Cecilia</h3>
-          <div className="grid md:grid-cols-3 gap-4">
+        <div className="flex flex-col items-center gap-8 w-full">
+          <h3 className="font-display font-extrabold text-2xl text-center">Lo que dicen quienes trabajaron con Cecilia</h3>
+          <div className="grid md:grid-cols-3 gap-4 w-full">
             {TESTIMONIOS.map(x => (
-              <figure key={x.nombre} className="tarjeta p-6 flex flex-col gap-4">
+              <figure key={x.nombre} className="tarjeta p-6 flex flex-col items-center text-center gap-4">
                 <blockquote className="text-gris leading-relaxed">"{x.texto}"</blockquote>
                 <figcaption className="mt-auto">
                   <p className="font-bold">{x.nombre}</p>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-oro">{x.programa}</p>
+                  <p className="text-sm text-gris">{x.programa}</p>
                 </figcaption>
               </figure>
             ))}
@@ -372,47 +353,43 @@ export default function Landing() {
 
       {/* Precio */}
       <section id="precio" className="bg-tinta text-crema scroll-mt-16">
-        <div className="max-w-6xl mx-auto px-5 py-20 grid md:grid-cols-2 gap-12 items-center">
-          <div className="flex flex-col gap-4">
-            <span className="etiqueta !text-oro-claro">Precio</span>
-            <h2 className="text-3xl md:text-4xl font-extrabold">Todo esto, por menos de lo que cuesta una sesión individual</h2>
-            <p className="text-crema/75">Si después querés formarte para trabajar con el Eneagrama, o hacer un proceso personal uno a uno, la Diplomatura y las mentorías de Cecilia siguen disponibles. La Academia es el mejor lugar para empezar.</p>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <a href={`${WEB}/diplomatura`} className="underline underline-offset-4 text-oro-claro hover:text-crema">Ver la Diplomatura</a>
-              <a href={`${WEB}/mentorias/premium`} className="underline underline-offset-4 text-oro-claro hover:text-crema">Ver las mentorías</a>
-            </div>
-          </div>
-          <div className="bg-crema text-tinta rounded-2xl p-8 flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="etiqueta">Precio de lanzamiento</p>
-                {precio.disponible && <SelectorMoneda moneda={precio.moneda} elegir={precio.elegir} />}
-              </div>
+        <div className="max-w-4xl mx-auto px-5 py-20 flex flex-col items-center gap-10">
+          <Encabezado oscuro
+            titulo="Todo esto, por menos de lo que cuesta una sesión individual"
+            texto="Si después querés formarte para trabajar con el Eneagrama, o hacer un proceso personal uno a uno, la Diplomatura y las mentorías de Cecilia siguen disponibles. La Academia es el mejor lugar para empezar." />
+          <div className="bg-crema text-tinta rounded-2xl p-8 flex flex-col items-center text-center gap-5 w-full max-w-md">
+            {precio.disponible && <SelectorMoneda moneda={precio.moneda} elegir={precio.elegir} />}
+            <div className="flex flex-col items-center gap-1">
               <p className="text-gris text-lg tabular-nums"><s>{precio.fmt(PRECIO_LISTA_USD)}</s></p>
-              <p className="flex flex-wrap items-baseline gap-x-2 -mt-1"><span className="font-display font-extrabold text-[2.6rem] sm:text-5xl leading-none tabular-nums">{mensual}</span><span className="text-gris">por mes</span></p>
-              <p className="text-sm text-gris">{precio.nota} Sin permanencia.</p>
+              <p className="font-display font-extrabold text-[2.6rem] sm:text-5xl leading-none tabular-nums">{mensual}</p>
+              <p className="text-gris">por mes, precio de lanzamiento</p>
             </div>
-            <ul className="flex flex-col gap-2.5 text-[15px]">
+            <ul className="flex flex-col items-center gap-2.5 text-[15px]">
               {INCLUYE_PRECIO.map(x => (
-                <li key={x} className="flex gap-2.5"><Check className="w-5 h-5 text-oro shrink-0" />{x}</li>
+                <li key={x} className="flex items-start gap-2"><Check className="w-5 h-5 text-oro shrink-0" />{x}</li>
               ))}
             </ul>
             <Link to={cta} className="btn btn-oro w-full !py-3.5 text-base">Sumarme ahora</Link>
-            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="text-center text-sm text-gris hover:text-oro">¿Tenés dudas? Escribile a Cecilia por WhatsApp</a>
+            <p className="text-sm text-gris">{precio.nota} Sin permanencia.</p>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="text-sm text-gris hover:text-oro underline underline-offset-4">¿Tenés dudas? Escribile a Cecilia por WhatsApp</a>
+          </div>
+          <div className="flex flex-wrap justify-center gap-6 text-sm">
+            <a href={`${WEB}/diplomatura`} className="underline underline-offset-4 text-oro-claro hover:text-crema">Ver la Diplomatura</a>
+            <a href={`${WEB}/mentorias/premium`} className="underline underline-offset-4 text-oro-claro hover:text-crema">Ver las mentorías</a>
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* Preguntas frecuentes */}
       <section className="max-w-3xl mx-auto px-5 py-20 flex flex-col gap-8">
-        <h2 className="text-3xl font-extrabold text-center">Preguntas frecuentes</h2>
+        <Encabezado titulo="Preguntas frecuentes" />
         <div className="flex flex-col gap-3">
           {FAQ.map(([p, r], i) => (
             <div key={p} className="tarjeta">
-              <button onClick={() => setAbierta(abierta === i ? null : i)} aria-expanded={abierta === i} className="w-full flex items-center justify-between gap-4 text-left px-5 py-4 font-semibold">
+              <button onClick={() => setAbierta(abierta === i ? null : i)} aria-expanded={abierta === i} className="w-full flex items-center justify-center gap-3 text-center px-5 py-4 font-semibold">
                 {p}<ChevronDown className={`w-5 h-5 text-gris shrink-0 transition-transform ${abierta === i ? 'rotate-180' : ''}`} />
               </button>
-              {abierta === i && <p className="px-5 pb-5 -mt-1 text-gris">{r}</p>}
+              {abierta === i && <p className="px-6 pb-5 -mt-1 text-gris text-center">{r}</p>}
             </div>
           ))}
         </div>
@@ -428,7 +405,7 @@ export default function Landing() {
       </section>
 
       <footer className="border-t border-linea">
-        <div className="max-w-6xl mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gris">
+        <div className="max-w-6xl mx-auto px-5 py-8 flex flex-col items-center gap-2 text-sm text-gris text-center">
           <span>Academia Eneascoaching · Cecilia B. Sánchez</span>
           <a href={WEB} className="hover:text-oro">cecimentorcoach.com</a>
         </div>
