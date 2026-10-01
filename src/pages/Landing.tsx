@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen, CalendarDays, MessagesSquare, Users, Check, ArrowRight, ChevronDown, Play,
-  Library, Compass, Heart, Briefcase, UserRound,
+  Library, Heart, Briefcase, UserRound, Sparkles,
 } from 'lucide-react';
 import Eneagrama from '../components/Eneagrama';
 import { useAuth } from '../lib/auth';
+import { usePrecio, SelectorMoneda, PRECIO_USD, PRECIO_LISTA_USD } from '../lib/precio';
 
 const WHATSAPP = 'https://wa.me/5493515632496?text=' + encodeURIComponent('Hola Cecilia! Quiero saber más de la Academia.');
 const WEB = 'https://www.cecimentorcoach.com';
@@ -49,7 +50,7 @@ const USOS = [
 ];
 
 const CAMINO = [
-  { titulo: 'Descubrí tu tipo', texto: 'Hacés el test completo y en la primera ruta aprendés a confirmarlo, porque un test orienta pero no decide por vos.' },
+  { titulo: 'Descubrí tu tipo', texto: 'Hacés el test completo en EneaTeams y en la primera ruta aprendés a confirmarlo, porque un test orienta pero no decide por vos.' },
   { titulo: 'Entendé el mapa', texto: 'Lecciones de 8 a 15 minutos que explican cada tipo con escenas de la vida real, sin tecnicismos.' },
   { titulo: 'Llevalo a tu vida', texto: 'Rutas para tus vínculos, tu crecimiento personal y tu trabajo, y dos vivos por mes para preguntar lo que te pasa a vos.' },
   { titulo: 'Profundizá', texto: 'Si querés usarlo en tu profesión, tenés una ruta para profesionales y un laboratorio de práctica. Si querés formarte, la Diplomatura.' },
@@ -59,8 +60,8 @@ const INCLUYE = [
   { icono: BookOpen, titulo: 'Cursos desde cero', texto: 'Seis rutas: Conocete, Tu tipo en el día a día, Crecer con tu tipo, El Eneagrama en el trabajo, El Eneagrama en tu profesión y Eneagrama e IA. Lecciones nuevas todas las semanas.' },
   { icono: CalendarDays, titulo: 'Dos vivos por mes con Cecilia', texto: 'Una clase temática y un encuentro de casos donde traés lo que te pasa con tu pareja, tu equipo o tus consultantes. Si no llegás, queda grabado.' },
   { icono: Library, titulo: 'Biblioteca', texto: 'Meditaciones para cada tipo, frases sanadoras, ejercicios sistémicos y fichas en PDF para imprimir o compartir.' },
-  { icono: Compass, titulo: 'Plataforma de Eneagrama', texto: 'Tu test completo con el informe de tu tipo, para empezar sabiendo desde dónde mirás.' },
-  { icono: Users, titulo: 'EneaTeams', texto: 'La app para conocer a un equipo: cada integrante hace su test y ves el mapa del grupo, sus fortalezas y sus roces.' },
+  { icono: Users, titulo: 'EneaTeams', texto: 'La plataforma de Eneagrama de Cecilia. Hacés tu test completo con el informe de tu tipo y, si trabajás con un equipo, ves cómo se comunica cada persona, dónde chocan y qué necesita cada una.' },
+  { icono: Sparkles, titulo: 'Laboratorio de práctica', texto: 'Para quien acompaña personas: una consultante simulada con IA, de un tipo que no conocés. Al final te devuelve qué viste y qué se te pasó.' },
   { icono: MessagesSquare, titulo: 'Comunidad', texto: 'Personas que están aprendiendo lo mismo que vos. Preguntás, compartís y sumás puntos que abren nuevos cursos.' },
 ];
 
@@ -90,8 +91,7 @@ const INCLUYE_PRECIO = [
   'Seis rutas de cursos y lecciones nuevas cada semana',
   'Clase en vivo y encuentro de casos con Cecilia, todos los meses',
   'Biblioteca de meditaciones, frases sanadoras y ejercicios',
-  'Test completo en la plataforma de Eneagrama',
-  'EneaTeams para conocer a tu equipo',
+  'EneaTeams: tu test completo y el mapa de tu equipo',
   'Laboratorio de práctica y comunidad',
 ];
 
@@ -141,6 +141,8 @@ export default function Landing() {
 
   const cta = perfil ? '/app' : '/registro';
   const t = TIPOS[tipo];
+  const precio = usePrecio();
+  const mensual = precio.fmt(PRECIO_USD);
 
   return (
     <div className="min-h-screen">
@@ -151,7 +153,7 @@ export default function Landing() {
             <span className="text-tinta shrink-0"><Eneagrama tam={30} /></span>
             <span className="font-display font-extrabold tracking-tight truncate">Academia <span className="text-oro">Eneascoaching</span></span>
           </Link>
-          <nav className="hidden md:flex items-center gap-7 text-sm text-gris">
+          <nav className="hidden lg:flex items-center gap-7 text-sm text-gris whitespace-nowrap">
             <a href="#eneagrama" className="hover:text-tinta">Qué es el Eneagrama</a>
             <a href="#incluye" className="hover:text-tinta">Qué incluye</a>
             <a href="#precio" className="hover:text-tinta">Precio</a>
@@ -174,8 +176,12 @@ export default function Landing() {
         </p>
         <div className="w-full mt-2"><VideoCecilia /></div>
         <div className="flex flex-wrap justify-center items-center gap-3 mt-2">
-          <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Quiero sumarme por USD 39 al mes <ArrowRight className="w-4 h-4" /></Link>
+          <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Quiero sumarme por {mensual} al mes <ArrowRight className="w-4 h-4" /></Link>
           <a href="#incluye" className="btn btn-borde">Ver qué incluye</a>
+        </div>
+        <div className="flex flex-wrap justify-center items-center gap-3 text-sm text-gris">
+          <span>Precio de lanzamiento: <s className="tabular-nums">{precio.fmt(PRECIO_LISTA_USD)}</s> <strong className="text-tinta tabular-nums">{mensual}</strong> por mes</span>
+          {precio.disponible && <SelectorMoneda moneda={precio.moneda} elegir={precio.elegir} />}
         </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gris">
           <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> No necesitás saber nada de Eneagrama</span>
@@ -345,7 +351,7 @@ export default function Landing() {
           <div className="flex flex-col gap-3">
             <span className="etiqueta">Quién te acompaña</span>
             <h2 className="text-2xl md:text-3xl font-extrabold">Cecilia B. Sánchez</h2>
-            <p className="text-gris">Coach ontológica, eneagramista y abogada. Creó el método Eneascoaching, que integra Coaching Ontológico y Eneagrama, acompañó a más de 1.800 personas y forma profesionales en su Diplomatura en Eneagrama.</p>
+            <p className="text-gris">Coach ontológica, eneagramista y abogada. Trabaja con el Eneagrama hace 7 años, creó el método Eneascoaching, que integra Coaching Ontológico y Eneagrama, acompañó a más de 1.800 personas y forma profesionales en su Diplomatura en Eneagrama.</p>
           </div>
         </div>
         <div className="flex flex-col gap-5">
@@ -377,10 +383,14 @@ export default function Landing() {
             </div>
           </div>
           <div className="bg-crema text-tinta rounded-2xl p-8 flex flex-col gap-5">
-            <div>
-              <p className="etiqueta">Membresía mensual</p>
-              <p className="mt-2 flex items-baseline gap-2"><span className="font-display font-extrabold text-5xl tabular-nums">USD 39</span><span className="text-gris">por mes</span></p>
-              <p className="text-sm text-gris mt-1">En Argentina se cobra en pesos con Mercado Pago. Sin permanencia.</p>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="etiqueta">Precio de lanzamiento</p>
+                {precio.disponible && <SelectorMoneda moneda={precio.moneda} elegir={precio.elegir} />}
+              </div>
+              <p className="text-gris text-lg tabular-nums"><s>{precio.fmt(PRECIO_LISTA_USD)}</s></p>
+              <p className="flex flex-wrap items-baseline gap-x-2 -mt-1"><span className="font-display font-extrabold text-[2.6rem] sm:text-5xl leading-none tabular-nums">{mensual}</span><span className="text-gris">por mes</span></p>
+              <p className="text-sm text-gris">{precio.nota} Sin permanencia.</p>
             </div>
             <ul className="flex flex-col gap-2.5 text-[15px]">
               {INCLUYE_PRECIO.map(x => (
@@ -413,7 +423,7 @@ export default function Landing() {
         <div className="rounded-3xl bg-tinta text-crema px-6 py-14 md:px-14 flex flex-col items-center text-center gap-5">
           <span className="text-crema/80"><Eneagrama tam={64} /></span>
           <h2 className="text-3xl md:text-4xl font-extrabold leading-tight max-w-2xl">Tu tipo ya está funcionando, lo conozcas o no. <span className="text-oro-claro">Mejor conocerlo.</span></h2>
-          <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Quiero sumarme por USD 39 al mes <ArrowRight className="w-4 h-4" /></Link>
+          <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Quiero sumarme por {mensual} al mes <ArrowRight className="w-4 h-4" /></Link>
         </div>
       </section>
 

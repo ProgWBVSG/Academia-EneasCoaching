@@ -267,6 +267,29 @@ async function sembrar(adminId) {
   return { ok: true };
 }
 
+// ── Cotizaciones ──────────────────────────────────────────────────────
+// Peso: dólar oficial (venta) de dolarapi.com, que toma el BNA. Euro: open.er-api.com.
+// Se guardan 30 minutos en memoria; si una fuente falla, se mantiene el último valor bueno.
+let cotizCache = { ars: null, eur: null, actualizado: null, hasta: 0 };
+
+async function cotizaciones() {
+  if (Date.now() < cotizCache.hasta) return cotizCache;
+  const conTiempo = (url) => fetch(url, { signal: AbortSignal.timeout(5000) }).then(r => (r.ok ? r.json() : null)).catch(() => null);
+  const [dolar, fx] = await Promise.all([
+    conTiempo('https://dolarapi.com/v1/dolares/oficial'),
+    conTiempo('https://open.er-api.com/v6/latest/USD'),
+  ]);
+  const ars = Number(dolar?.venta) || cotizCache.ars;
+  const eur = Number(fx?.rates?.EUR) || cotizCache.eur;
+  cotizCache = {
+    ars, eur,
+    actualizado: dolar?.fechaActualizacion || cotizCache.actualizado || new Date().toISOString(),
+    // Si alguna falló, se reintenta en 2 minutos en vez de esperar media hora
+    hasta: Date.now() + (dolar && fx ? 30 : 2) * 60 * 1000,
+  };
+  return cotizCache;
+}
+
 // ── Handler ───────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   const action = req.query.action;
@@ -337,6 +360,12 @@ export default async function handler(req, res) {
         sb.from('academia_eventos').select('titulo,inicio,tipo').gte('inicio', new Date().toISOString()).order('inicio').limit(1),
       ]);
       return res.status(200).json({ miembros: miembros || 0, proximo: proximo?.[0] || null, precio_usd: 39 });
+    }
+
+    if (action === 'cotizacion' && m === 'GET') {
+      const { ars, eur, actualizado } = await cotizaciones();
+      res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=86400');
+      return res.status(200).json({ ars, eur, actualizado });
     }
 
     // ── Requieren sesión ───────────────────────────────────────────
