@@ -2,14 +2,16 @@ import { useEffect, useLayoutEffect, useState, type CSSProperties, type ReactNod
 import { Link } from 'react-router-dom';
 import {
   BookOpen, CalendarDays, MessagesSquare, Users, Check, ArrowRight, ChevronDown, Play,
-  Library, Heart, Briefcase, UserRound, Sparkles, Repeat, ArrowUp, Brain, Compass, Scale, GraduationCap, Handshake,
+  Library, Briefcase, UserRound, Sparkles, ArrowUp, Brain, Compass, Scale, GraduationCap, Stethoscope,
+  Handshake, MessageCircleWarning,
 } from 'lucide-react';
 import Eneagrama from '../components/Eneagrama';
 import { useAuth } from '../lib/auth';
 import { usePrecio, SelectorMoneda, PRECIO_USD, PRECIO_LISTA_USD, CUPO_LANZAMIENTO } from '../lib/precio';
 
-// Reglas de esta página: todo centrado, sin etiquetas arriba de los títulos,
-// y un texto que sirva por igual a mujeres y a hombres que no conocen el Eneagrama.
+// Reglas de esta página: todo centrado, sin etiquetas arriba de los títulos y un texto
+// neutro para mujeres y hombres. El foco es usar el Eneagrama en el trabajo, con clientes,
+// pacientes y equipos, para sumarle humanidad a la técnica. No hace falta conocerlo.
 
 const WHATSAPP = 'https://wa.me/5493515632496?text=' + encodeURIComponent('Hola Cecilia! Quiero saber más de la Academia.');
 const WEB = 'https://www.cecimentorcoach.com';
@@ -27,77 +29,77 @@ function urlEmbed(url: string): string | null {
 }
 
 const ESCENAS = [
-  'Discutís con la misma persona por lo mismo y terminás diciendo justo lo que te habías prometido no decir.',
-  'Decís que sí cuando querías decir que no, y a la noche te enojás con vos.',
-  'Hay alguien en tu trabajo que te saca de quicio y no terminás de entender qué le pasa.',
-  'Le explicás algo a alguien por tercera vez y sentís que hablan idiomas distintos.',
-  'Leíste, hiciste terapia o cursos, y hay un patrón que sigue apareciendo igual.',
-  'Trabajás con personas y a veces no sabés por qué alguien reacciona así, ni cómo llegarle.',
-];
-
-const TIPOS: Record<number, { nombre: string; mueve: string; traba: string; escena: string }> = {
-  1: { nombre: 'la integridad', mueve: 'Hacer las cosas bien.', traba: 'No se permite descansar hasta que todo esté en orden, y se enoja en silencio cuando los demás no cumplen.', escena: 'Relee por tercera vez un mensaje antes de mandarlo.' },
-  2: { nombre: 'el vínculo', mueve: 'Ser importante para la gente que quiere.', traba: 'Da sin que se lo pidan y le cuesta muchísimo pedir para sí.', escena: 'Se acuerda del cumpleaños de todos. Cuando nadie se acuerda del suyo, dice que no importa.' },
-  3: { nombre: 'el logro', mueve: 'Valer por lo que consigue.', traba: 'No sabe parar, y cuando no está produciendo no sabe bien qué siente.', escena: 'Se va de vacaciones y el segundo día ya está respondiendo mensajes del trabajo.' },
-  4: { nombre: 'la autenticidad', mueve: 'Ser fiel a lo que siente y encontrar a alguien que lo entienda de verdad.', traba: 'Se compara y siente que siempre le falta algo que los demás tienen.', escena: 'Mira fotos ajenas y siente que la vida de todos es más plena que la suya.' },
-  5: { nombre: 'el conocimiento', mueve: 'Entender antes de actuar.', traba: 'Se guarda, se aísla y siente que no le alcanza la energía para los demás.', escena: 'Investiga tres semanas antes de decidir qué heladera comprar.' },
-  6: { nombre: 'la seguridad', mueve: 'Tener respaldo y saber con quién cuenta.', traba: 'Duda, pide otra opinión y anticipa todo lo que puede salir mal.', escena: 'Antes de un viaje ya pensó qué hacer si se pierde la valija, si llueve y si cancelan el vuelo.' },
-  7: { nombre: 'la libertad', mueve: 'Disfrutar y tener opciones abiertas.', traba: 'Se escapa cuando algo duele o se vuelve aburrido.', escena: 'Tiene cinco proyectos empezados y ya tiene ganas de arrancar el sexto.' },
-  8: { nombre: 'la fuerza', mueve: 'Proteger y no depender de nadie.', traba: 'Toma el control y le cuesta muchísimo mostrarse vulnerable.', escena: 'Defiende a un compañero delante de todos y no le cuenta a nadie que esa semana no durmió.' },
-  9: { nombre: 'la paz', mueve: 'Que haya armonía.', traba: 'Se posterga para evitar el conflicto, hasta no saber qué quiere.', escena: 'Cuando le preguntan adónde ir a comer, contesta "donde quieran". Siempre.' },
-};
-
-// Lo que cambia, ordenado por los tres usos
-const USOS = [
-  { icono: UserRound, titulo: 'Con vos', items: [
-    'Entendés en el momento por qué reaccionaste así, no tres días después.',
-    'Dejás de pelearte con tu forma de ser y empezás a usarla a tu favor.',
-    'Tenés prácticas pensadas para tu tipo: meditaciones, frases y ejercicios.',
-  ] },
-  { icono: Heart, titulo: 'Con tu gente', items: [
-    'Dejás de tomarte como algo personal lo que es la forma de ser del otro.',
-    'Sabés cómo pedirle algo a cada persona para que te escuche.',
-    'En una discusión entendés qué necesita el otro y qué necesitás vos.',
-  ] },
-  { icono: Briefcase, titulo: 'En tu trabajo', items: [
-    'Entendés por qué un compañero, un cliente o tu jefa reacciona como reacciona.',
-    'Das una devolución o una mala noticia sabiendo cómo la van a recibir.',
-    'Elegís mejor con quién trabajar y cómo repartir las tareas.',
-  ] },
+  'El cliente que te contrató para resolver algo y no sigue ninguno de tus consejos.',
+  'La mala noticia que tenés que dar sin saber cómo la van a recibir.',
+  'Dos personas de tu equipo que no se soportan, y te toca a vos mediar.',
+  'La negociación que se traba por algo que no tiene nada que ver con el tema.',
+  'El paciente o el alumno que vuelve siempre al mismo punto, por más que le expliques.',
+  'Esa persona con la que hagas lo que hagas, sentís que hablan idiomas distintos.',
 ];
 
 const PROFESIONES = [
-  { icono: Brain, titulo: 'Psicología y terapia', texto: 'Entendés por qué alguien vuelve siempre al mismo punto, y qué intervención lo mueve.' },
-  { icono: Compass, titulo: 'Coaching', texto: 'Ves qué frena a tu cliente aunque ya sepa lo que tiene que hacer.' },
-  { icono: Users, titulo: 'RRHH y equipos', texto: 'Seleccionás mejor, anticipás roces entre personas y das devoluciones que se escuchan. Con EneaTeams ves el mapa del equipo.' },
-  { icono: Scale, titulo: 'Abogacía y mediación', texto: 'Entendés qué mueve a tu cliente en un conflicto, cómo va a negociar la otra parte y cómo dar una mala noticia. Cecilia también es abogada.' },
-  { icono: GraduationCap, titulo: 'Docencia', texto: 'Entendés por qué un alumno se cierra y otro desafía, y cómo llegarle a cada uno.' },
-  { icono: Handshake, titulo: 'Ventas y atención', texto: 'Sabés qué necesita escuchar cada cliente para confiar y decidir.' },
+  { icono: Scale, titulo: 'Abogacía y mediación', texto: 'No todo es ley. Entendés qué mueve a tu cliente en un conflicto, cómo va a negociar la otra parte y cómo dar una mala noticia. Cecilia es abogada: lo vivió.' },
+  { icono: Users, titulo: 'RRHH y equipos', texto: 'No todo es procesos. Seleccionás mejor, anticipás roces entre personas y das devoluciones que se escuchan. Con EneaTeams ves el mapa del equipo.' },
+  { icono: Stethoscope, titulo: 'Salud', texto: 'No todo es diagnóstico. Sabés cómo explicarle un tratamiento a cada paciente para que lo entienda y lo siga.' },
+  { icono: Brain, titulo: 'Psicología y terapia', texto: 'No todo es teoría. Entendés por qué alguien vuelve siempre al mismo punto, y qué intervención lo mueve.' },
+  { icono: Compass, titulo: 'Coaching', texto: 'No todo son buenas preguntas. Ves qué frena a tu cliente aunque ya sepa lo que tiene que hacer.' },
+  { icono: GraduationCap, titulo: 'Docencia', texto: 'No todo es contenido. Entendés por qué un alumno se cierra y otro desafía, y cómo llegarle a cada uno.' },
+];
+
+const TIPOS: Record<number, { nombre: string; mueve: string; traba: string; escena: string }> = {
+  1: { nombre: 'la integridad', mueve: 'Hacer las cosas bien.', traba: 'No se permite un error, y se enoja en silencio cuando los demás no cumplen.', escena: 'Revisa tres veces un escrito antes de mandarlo, y corrige el de los demás aunque nadie se lo pida.' },
+  2: { nombre: 'el vínculo', mueve: 'Ser importante para los demás.', traba: 'Da sin que se lo pidan y le cuesta muchísimo pedir para sí.', escena: 'Se queda después de hora ayudando a todos, y se ofende si nadie lo nota.' },
+  3: { nombre: 'el logro', mueve: 'Valer por lo que consigue.', traba: 'No sabe parar, y cuando algo no funciona lo vive como un fracaso propio.', escena: 'En la primera entrevista ya pregunta cuándo va a ver resultados.' },
+  4: { nombre: 'la autenticidad', mueve: 'Ser fiel a lo que siente y encontrar a alguien que lo entienda de verdad.', traba: 'Se siente distinto a los demás, y a veces incomprendido.', escena: 'Necesita sentir que lo entendés antes de escuchar cualquier solución.' },
+  5: { nombre: 'el conocimiento', mueve: 'Entender antes de actuar.', traba: 'Se guarda, se aísla y siente que no le alcanza la energía para los demás.', escena: 'Pide toda la información por escrito y decide recién cuando la leyó entera.' },
+  6: { nombre: 'la seguridad', mueve: 'Tener respaldo y saber con quién cuenta.', traba: 'Duda, pide otra opinión y anticipa todo lo que puede salir mal.', escena: 'Pregunta cinco veces "¿y si sale mal?" antes de firmar.' },
+  7: { nombre: 'la libertad', mueve: 'Disfrutar y tener opciones abiertas.', traba: 'Se escapa cuando algo duele o se vuelve aburrido.', escena: 'Se entusiasma con la propuesta y se pierde en la letra chica.' },
+  8: { nombre: 'la fuerza', mueve: 'Proteger y no depender de nadie.', traba: 'Toma el control y le cuesta muchísimo mostrarse vulnerable.', escena: 'En el primer encuentro te pone a prueba para ver si sos de fiar.' },
+  9: { nombre: 'la paz', mueve: 'Que haya armonía.', traba: 'Se posterga para evitar el conflicto, hasta no saber qué quiere.', escena: 'Dice que está todo bien, y después no hace lo que acordaron.' },
+};
+
+// Lo que cambia, en tres lugares del trabajo
+const USOS = [
+  { icono: Handshake, titulo: 'Con tus clientes', items: [
+    'En la primera conversación ya intuís qué mueve a la persona que tenés enfrente.',
+    'Sabés cómo hablarle a cada uno para que te escuche y confíe.',
+    'Das una mala noticia sabiendo cómo la va a recibir.',
+  ] },
+  { icono: Users, titulo: 'Con tu equipo', items: [
+    'Entendés por qué dos personas chocan, y qué necesita cada una.',
+    'Repartís las tareas según cómo funciona cada persona.',
+    'Das devoluciones que se reciben, en lugar de discusiones.',
+  ] },
+  { icono: UserRound, titulo: 'Con vos', items: [
+    'Ves qué parte de tu forma de ser se mete en tu trabajo.',
+    'Trabajás con más humanidad sin perder profesionalismo.',
+    'Y de paso, te entendés mejor a vos y a tu gente.',
+  ] },
 ];
 
 const CAMINO = [
-  { titulo: 'Descubrí tu tipo', texto: 'Hacés el test completo en EneaTeams y en las primeras clases aprendés a confirmarlo, porque un test orienta pero no decide por vos.' },
-  { titulo: 'Entendé el mapa', texto: 'Lecciones de 8 a 15 minutos que explican cada tipo con escenas de la vida real, sin tecnicismos.' },
-  { titulo: 'Llevalo a tu vida', texto: 'Recorridos para tus vínculos, tu crecimiento y tu trabajo, y dos vivos por mes para preguntar lo que te pasa a vos.' },
-  { titulo: 'Profundizá', texto: 'Si querés usarlo en tu profesión, tenés un recorrido propio y un laboratorio de práctica. Si querés formarte, la Diplomatura.' },
+  { titulo: 'Descubrí tu tipo', texto: 'Para leer a otros, primero te leés a vos. El primer día hacés tu test completo en EneaTeams.' },
+  { titulo: 'Conocé los nueve tipos', texto: 'Lecciones de 8 a 15 minutos, desde cero y sin tecnicismos, con escenas de distintos trabajos.' },
+  { titulo: 'Aplicalo en tu trabajo', texto: 'Recorridos para leer a tus clientes, manejar conversaciones difíciles, armar equipos y usarlo en tu profesión.' },
+  { titulo: 'Practicá con casos reales', texto: 'Traés tus casos a los vivos y practicás en el laboratorio. Si querés formarte a fondo, la Diplomatura.' },
 ];
 
 const INCLUYE = [
-  { icono: BookOpen, titulo: 'Cursos desde cero', texto: 'Seis recorridos: conocerte, tus vínculos, tu crecimiento, tu trabajo, tu profesión y el Eneagrama con IA. Lecciones nuevas todas las semanas.' },
-  { icono: CalendarDays, titulo: 'Dos vivos por mes con Cecilia', texto: 'Una clase temática y un encuentro de casos donde traés lo que te pasa con tu familia, tu equipo o tus clientes. Si no llegás, queda grabado.' },
-  { icono: Library, titulo: 'Biblioteca', texto: 'Meditaciones para cada tipo, frases sanadoras, ejercicios sistémicos y fichas en PDF para imprimir o compartir.' },
-  { icono: Users, titulo: 'EneaTeams', texto: 'La plataforma de Eneagrama de Cecilia. Hacés tu test completo con el informe de tu tipo y, si trabajás con un equipo, ves cómo se comunica cada persona y dónde chocan.' },
-  { icono: Sparkles, titulo: 'Laboratorio de práctica', texto: 'Una conversación con un consultante simulado por IA, de un tipo que no conocés. Al final te devuelve qué viste y qué se te pasó.' },
-  { icono: MessagesSquare, titulo: 'Comunidad', texto: 'Personas que están aprendiendo lo mismo que vos. Preguntás, compartís y sumás puntos que abren nuevos cursos.' },
+  { icono: BookOpen, titulo: 'Cursos desde cero', texto: 'Los nueve tipos, cómo leer a la persona que tenés enfrente, conversaciones difíciles, equipos y un recorrido para cada profesión. Lecciones nuevas todas las semanas.' },
+  { icono: CalendarDays, titulo: 'Dos vivos por mes con Cecilia', texto: 'Una clase temática y un encuentro donde traés un caso real de tu trabajo y lo miramos en grupo. Si no llegás, queda grabado.' },
+  { icono: Library, titulo: 'Biblioteca', texto: 'Fichas de cada tipo para entender a tus clientes, guías para conversaciones difíciles, y meditaciones y ejercicios para vos.' },
+  { icono: Users, titulo: 'EneaTeams', texto: 'La plataforma de Eneagrama de Cecilia. Hacés tu test con el informe de tu tipo y ves el mapa de tu equipo: cómo se comunica cada persona y dónde chocan.' },
+  { icono: Sparkles, titulo: 'Laboratorio de práctica', texto: 'Una conversación con un cliente simulado por IA, de un tipo que no conocés. Al final te devuelve qué viste y qué se te pasó.' },
+  { icono: MessagesSquare, titulo: 'Comunidad de colegas', texto: 'Profesionales de distintas áreas que usan la misma herramienta. Preguntás, compartís casos y sumás puntos que abren nuevos cursos.' },
 ];
 
 const PARA_VOS = [
-  'Querés entender por qué reaccionás como reaccionás, y no solo aprender a controlarlo.',
-  'Tenés un vínculo que te desgasta y querés dejar de repetir la misma discusión.',
-  'Trabajás con personas, como pacientes, clientes, alumnos o un equipo, y querés entenderlas mejor.',
-  'Nunca estudiaste el Eneagrama, o lo viste por arriba, y querés aprenderlo bien desde el principio.',
-  'Preferís aprender con otras personas y encuentros en vivo, no solo con videos.',
-  'Ya hiciste un camino de autoconocimiento y buscás una herramienta que ordene lo que aprendiste.',
+  'Trabajás con personas y sentís que la técnica no siempre te alcanza para llegarles.',
+  'Tenés clientes, pacientes, alumnos o un equipo que a veces no sabés cómo leer.',
+  'Querés trabajar con más humanidad sin perder profesionalismo.',
+  'Nunca estudiaste el Eneagrama y querés aprenderlo para aplicarlo, no como teoría.',
+  'Ya lo conocés y querés usarlo en tu trabajo con más seguridad.',
+  'Preferís aprender con colegas y con casos reales, no solo con videos.',
 ];
 
 const TESTIMONIOS = [
@@ -107,23 +109,25 @@ const TESTIMONIOS = [
 ];
 
 const INCLUYE_PRECIO = [
-  'Seis recorridos de cursos y lecciones nuevas cada semana',
+  'Cursos desde cero y lecciones nuevas cada semana',
   'Clase en vivo y encuentro de casos con Cecilia, todos los meses',
-  'Biblioteca de meditaciones, frases sanadoras y ejercicios',
+  'Fichas de cada tipo y guías para conversaciones difíciles',
   'EneaTeams: tu test completo y el mapa de tu equipo',
-  'Laboratorio de práctica y comunidad',
+  'Laboratorio de práctica y comunidad de colegas',
 ];
 
 const FAQ = [
-  ['¿Necesito saber algo de Eneagrama?', 'No. Arrancás haciendo tu test y las primeras clases explican todo desde cero, con ejemplos de la vida diaria.'],
-  ['No trabajo con personas. ¿Es para mí?', 'Sí. La mayoría de los recorridos son para entenderte y entender a tu gente. Los de trabajo y profesión los hacés solo si te interesan.'],
-  ['¿El Eneagrama es algo esotérico?', 'Es un modelo de personalidad que describe qué te motiva y cómo reaccionás. Se usa en psicoterapia, coaching y empresas. Acá lo aprendés con ejemplos concretos, y cada herramienta te dice para qué sirve y cuándo usarla.'],
+  ['¿Necesito saber algo de Eneagrama?', 'No. Arrancás haciendo tu test y las primeras clases explican todo desde cero, con ejemplos de distintos trabajos.'],
+  ['Mi profesión no es psicología ni coaching. ¿Me sirve?', 'Sí. Está pensada para cualquier trabajo con personas del otro lado: derecho, salud, educación, recursos humanos, equipos. Hay ejemplos y casos de cada área.'],
+  ['¿El Eneagrama es algo esotérico?', 'Es un modelo de personalidad que describe qué motiva a cada persona y cómo reacciona. Se usa en empresas, en psicoterapia y en coaching. Acá lo aprendés con casos concretos y cada herramienta te dice para qué sirve y cuándo usarla.'],
+  ['¿Me sirve también en lo personal?', 'Sí. Para usarlo con otros primero entendés tu propio tipo, y eso se nota en tus vínculos. Pero el foco de la Academia es aplicarlo en tu trabajo.'],
   ['¿Cuánto tiempo necesito?', 'Con media hora por semana avanzás. Las lecciones duran entre 8 y 15 minutos. Los vivos se anuncian en el calendario con el horario de tu país y quedan grabados.'],
-  ['¿Qué diferencia hay con la Diplomatura?', 'La Academia es para aprender y practicar a tu ritmo, con otras personas. La Diplomatura es la formación completa para trabajar profesionalmente con el Eneagrama, con práctica supervisada y diploma. Mucha gente empieza por acá.'],
-  ['¿Qué pasa cuando se completan los 100 lugares?', 'Quien entre después paga USD 59 por mes. Si entraste a USD 39, mantenés ese precio mientras sigas en la Academia.'],
-  ['¿Puedo cancelar cuando quiera?', 'Sí. Es una suscripción mensual sin permanencia y la cancelás cuando quieras.'],
+  ['¿Qué diferencia hay con la Diplomatura?', 'La Academia es para aprender a usar el Eneagrama en tu trabajo, a tu ritmo y con colegas. La Diplomatura es la formación completa para trabajar como eneagramista, con práctica supervisada y diploma. Mucha gente empieza por acá.'],
+  ['¿Qué pasa con el precio? ¿Puedo cancelar?', 'Las primeras 100 personas pagan USD 39 por mes y mantienen ese precio mientras sigan en la Academia. Después, el precio es USD 59. Es una suscripción sin permanencia y la cancelás cuando quieras.'],
   ['¿Cómo pago desde fuera de Argentina?', 'Escribinos por WhatsApp y te pasamos la forma de pago para tu país.'],
 ];
+
+const retraso = (i: number, cada = 3) => ({ '--retraso': `${(i % cada) * 110}ms` }) as CSSProperties;
 
 // Título y bajada de cada sección, siempre centrados
 function Encabezado({ titulo, texto, oscuro = false }: { titulo: ReactNode; texto?: ReactNode; oscuro?: boolean }) {
@@ -171,7 +175,7 @@ export default function Landing() {
   const { perfil } = useAuth();
   const [info, setInfo] = useState<{ miembros: number; proximo: { titulo: string; inicio: string } | null } | null>(null);
   const [abierta, setAbierta] = useState<number | null>(0);
-  const [tipo, setTipo] = useState(9);
+  const [tipo, setTipo] = useState(6);
 
   // Cada bloque con la clase "revelar" aparece suave al entrar en pantalla.
   // Solo se ocultan si el navegador puede mostrarlos después (clase "animado" en <html>).
@@ -218,7 +222,7 @@ export default function Landing() {
             <span className="font-display font-extrabold tracking-tight truncate">Academia <span className="text-oro">Eneascoaching</span></span>
           </Link>
           <nav className="hidden lg:flex items-center gap-7 text-sm text-gris whitespace-nowrap">
-            <a href="#eneagrama" className="hover:text-tinta">Qué es el Eneagrama</a>
+            <a href="#profesiones" className="hover:text-tinta">Para quién es</a>
             <a href="#incluye" className="hover:text-tinta">Qué incluye</a>
             <a href="#precio" className="hover:text-tinta">Precio</a>
           </nav>
@@ -232,12 +236,12 @@ export default function Landing() {
       {/* Promesa, video y bajada */}
       <section className="max-w-4xl mx-auto px-5 pt-12 pb-16 md:pt-16 md:pb-20 flex flex-col items-center text-center gap-7">
         <h1 className="text-[2.3rem] md:text-[3.6rem] leading-[1.05] font-extrabold tracking-tight">
-          Todos repetimos un patrón.<br />
-          <span className="text-oro">Aprendé a leer el tuyo y el de los demás.</span>
+          Sabés hacer tu trabajo.<br />
+          <span className="text-oro">Ahora aprendé a leer a las personas.</span>
         </h1>
         <div className="w-full"><VideoCecilia /></div>
         <p className="text-lg md:text-xl text-gris max-w-2xl">
-          El Eneagrama describe nueve formas de sentir, pensar y reaccionar. En la Academia lo aprendés desde cero para entenderte, entender a tu gente y usarlo en tu trabajo, con Cecilia B. Sánchez.
+          El Eneagrama describe nueve formas de sentir, pensar y reaccionar. En la Academia aprendés desde cero a usarlo con tus clientes, tus pacientes y tu equipo, para trabajar con más humanidad y mejores resultados. Con Cecilia B. Sánchez, abogada y eneagramista.
         </p>
         <div className="flex flex-wrap justify-center items-center gap-3">
           <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Quiero sumarme por {mensual} al mes <ArrowRight className="w-4 h-4" /></Link>
@@ -254,8 +258,8 @@ export default function Landing() {
         </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gris">
           <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> No necesitás saber nada de Eneagrama</span>
+          <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Para cualquier profesión con personas</span>
           <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Cancelás cuando quieras</span>
-          <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> +1.800 personas acompañadas por Cecilia</span>
           {info?.proximo && (
             <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Próximo vivo: {new Date(info.proximo.inicio).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}</span>
           )}
@@ -265,26 +269,45 @@ export default function Landing() {
       {/* Dolores */}
       <section className="bg-tinta text-crema">
         <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
-          <Encabezado oscuro titulo={<>Hay cosas que se repiten<br /><span className="text-oro-claro">y no es por falta de voluntad</span></>} />
+          <Encabezado oscuro titulo={<>Sabés qué hay que hacer.<br /><span className="text-oro-claro">El desafío es la persona que tenés enfrente.</span></>} />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
             {ESCENAS.map((e, i) => (
-              <div key={e} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-4">
-                <Icono icono={Repeat} oscuro />
+              <div key={e} style={retraso(i)} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-4">
+                <Icono icono={MessageCircleWarning} oscuro />
                 <p className="text-crema/90 text-[15.5px] leading-relaxed">{e}</p>
               </div>
             ))}
           </div>
           <p className="revelar text-crema text-xl md:text-2xl font-display font-bold leading-snug max-w-3xl text-center">
-            El Eneagrama es el mapa que falta. Describe nueve formas de mirar el mundo, qué mueve a cada una y dónde se traba. Cuando reconocés la tuya, esas escenas dejan de ser un misterio.
+            En cualquier trabajo con personas, la técnica resuelve la mitad. La otra mitad es humana: qué mueve a cada uno, qué teme y cómo escucha. El Eneagrama es el mapa de esa mitad.
           </p>
+        </div>
+      </section>
+
+      {/* Profesiones */}
+      <section id="profesiones" className="bg-oro-suave scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
+          <Encabezado
+            titulo="En tu profesión, la diferencia es humana"
+            texto="La Academia es para cualquier persona que trabaja con otras personas. Aprendés a usar el Eneagrama con casos de tu área." />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+            {PROFESIONES.map((p, i) => (
+              <div key={p.titulo} style={retraso(i)} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-3">
+                <Icono icono={p.icono} />
+                <h3 className="font-bold text-lg">{p.titulo}</h3>
+                <p className="text-gris text-[15px] leading-relaxed">{p.texto}</p>
+              </div>
+            ))}
+          </div>
+          <p className="revelar text-gris text-center max-w-2xl">¿Trabajás en ventas, atención al público, una empresa familiar u otra área? También es para vos: si hay una persona del otro lado, sirve.</p>
         </div>
       </section>
 
       {/* Qué es el Eneagrama, interactivo */}
       <section id="eneagrama" className="max-w-4xl mx-auto px-5 py-20 scroll-mt-16 flex flex-col items-center gap-8">
         <Encabezado
-          titulo="Nueve tipos, nueve motivaciones distintas"
-          texto="No es un horóscopo ni una etiqueta. Describe lo que te mueve por dentro, no solo lo que hacés. Dos personas pueden reaccionar igual por motivos opuestos, y ahí está la clave para entenderlas." />
+          titulo="Nueve tipos, nueve formas de reaccionar"
+          texto="El Eneagrama no mira solo lo que una persona hace, sino por qué lo hace. Dos clientes pueden no firmar por motivos opuestos: uno por miedo a que salga mal, otro porque siente que no lo escuchaste. Si ves el motivo, sabés qué decir." />
         <div className="revelar relative flex justify-center text-tinta">
           <div className="absolute inset-8 rounded-full bg-oro-suave blur-2xl opacity-80" aria-hidden />
           <div className="relative"><Eneagrama tam={380} resaltar={tipo} onElegir={setTipo} /></div>
@@ -294,47 +317,29 @@ export default function Landing() {
           <p className="font-display font-extrabold text-2xl"><span className="text-oro">Tipo {tipo}</span>, {t.nombre}</p>
           <p className="text-[15px]"><span className="font-semibold">Qué lo mueve:</span> <span className="text-gris">{t.mueve}</span></p>
           <p className="text-[15px]"><span className="font-semibold">Dónde se traba:</span> <span className="text-gris">{t.traba}</span></p>
-          <p className="text-[15px] bg-oro-suave rounded-lg px-4 py-2.5">{t.escena}</p>
+          <p className="text-[15px] bg-oro-suave rounded-lg px-4 py-2.5"><span className="font-semibold">En tu trabajo:</span> {t.escena}</p>
         </div>
       </section>
 
-      {/* Lo que cambia, en tres lugares */}
-      <section className="bg-oro-suave">
-        <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-12">
-          <Encabezado titulo="Lo que cambia cuando entendés cómo funciona cada persona" texto="Lo vas a notar en tres lugares de tu vida." />
-          <div className="grid md:grid-cols-3 gap-4">
-            {USOS.map((u, i) => (
-              <div key={u.titulo} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar tarjeta p-7 flex flex-col items-center text-center gap-4">
-                <Icono icono={u.icono} />
-                <h3 className="font-bold text-xl">{u.titulo}</h3>
-                <ul className="flex flex-col gap-3 text-gris text-[15px] leading-relaxed">
-                  {u.items.map(i => <li key={i}>{i}</li>)}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Profesiones */}
+      {/* Lo que cambia, y el laboratorio */}
       <section className="bg-tinta text-crema">
         <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
-          <Encabezado oscuro
-            titulo="Si trabajás con personas, cambia tu forma de trabajar"
-            texto="No hace falta ser psicólogo ni coach. Sirve en cualquier trabajo donde entender al otro hace la diferencia." />
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {PROFESIONES.map((p, i) => (
-              <div key={p.titulo} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-3">
-                <Icono icono={p.icono} oscuro />
-                <h3 className="font-bold text-lg">{p.titulo}</h3>
-                <p className="text-crema/75 text-[15px] leading-relaxed">{p.texto}</p>
+          <Encabezado oscuro titulo="Lo que cambia cuando sabés leer a las personas" texto="Lo vas a notar en tres lugares." />
+          <div className="grid md:grid-cols-3 gap-4 w-full">
+            {USOS.map((u, i) => (
+              <div key={u.titulo} style={retraso(i)} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-7 flex flex-col items-center text-center gap-4">
+                <Icono icono={u.icono} oscuro />
+                <h3 className="font-bold text-xl">{u.titulo}</h3>
+                <ul className="flex flex-col gap-3 text-crema/75 text-[15px] leading-relaxed">
+                  {u.items.map(x => <li key={x}>{x}</li>)}
+                </ul>
               </div>
             ))}
           </div>
           <div className="flex flex-col items-center gap-6 w-full pt-4">
             <div className="revelar flex flex-col items-center text-center gap-3 max-w-2xl">
-              <h3 className="font-display font-extrabold text-2xl md:text-3xl">Y para practicar, un consultante que no sabés de qué tipo es</h3>
-              <p className="text-crema/75">La IA hace de consultante en una primera conversación. Vos preguntás y formulás tu hipótesis. Al final te muestra el tipo real y las señales que se te pasaron.</p>
+              <h3 className="font-display font-extrabold text-2xl md:text-3xl">Y para practicar, un cliente que no sabés de qué tipo es</h3>
+              <p className="text-crema/75">La IA hace de cliente en una primera conversación. Vos preguntás y formulás tu hipótesis. Al final te muestra el tipo real y las señales que se te pasaron.</p>
             </div>
             <div className="revelar bg-crema text-tinta rounded-2xl p-5 flex flex-col gap-3 shadow-xl shadow-black/30 w-full max-w-xl">
               <div className="self-end max-w-[85%] bg-tinta text-crema rounded-2xl rounded-br-sm px-4 py-2.5 text-sm">¿Qué sentiste cuando tu socia tomó esa decisión sin consultarte?</div>
@@ -350,10 +355,10 @@ export default function Landing() {
 
       {/* El camino */}
       <section className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-12">
-        <Encabezado titulo="Empezás por vos y llegás a los demás" texto="Así vas a aprender, a tu ritmo y con compañía." />
+        <Encabezado titulo="De no saber nada a usarlo con tus clientes" texto="Así vas a aprender, a tu ritmo y con colegas." />
         <ol className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {CAMINO.map((p, i) => (
-            <li key={p.titulo} style={{ '--retraso': `${i * 110}ms` } as CSSProperties} className="revelar flex flex-col items-center text-center gap-3">
+            <li key={p.titulo} style={retraso(i, 4)} className="revelar flex flex-col items-center text-center gap-3">
               <span className="w-11 h-11 rounded-full bg-tinta text-crema font-display font-extrabold flex items-center justify-center tabular-nums">{i + 1}</span>
               <h3 className="font-bold text-lg">{p.titulo}</h3>
               <p className="text-gris text-[15px] leading-relaxed">{p.texto}</p>
@@ -364,10 +369,10 @@ export default function Landing() {
 
       {/* Qué incluye */}
       <section id="incluye" className="max-w-6xl mx-auto px-5 pb-20 scroll-mt-16 flex flex-col gap-10">
-        <Encabezado titulo="Todo en un solo lugar, por una cuota mensual" />
+        <Encabezado titulo="Todo lo que necesitás para aplicarlo, en un solo lugar" />
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {INCLUYE.map((x, i) => (
-            <div key={x.titulo} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-3">
+            <div key={x.titulo} style={retraso(i)} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-3">
               <Icono icono={x.icono} />
               <h3 className="font-bold text-lg">{x.titulo}</h3>
               <p className="text-gris text-[15px] leading-relaxed">{x.texto}</p>
@@ -382,7 +387,7 @@ export default function Landing() {
           <Encabezado titulo="La Academia es para vos si te reconocés en alguna de estas" />
           <ul className="grid sm:grid-cols-2 gap-4 w-full">
             {PARA_VOS.map((p, i) => (
-              <li key={p} style={{ '--retraso': `${(i % 2) * 110}ms` } as CSSProperties} className="revelar tarjeta p-5 flex flex-col items-center text-center gap-3 text-[15px]">
+              <li key={p} style={retraso(i, 2)} className="revelar tarjeta p-5 flex flex-col items-center text-center gap-3 text-[15px]">
                 <Check className="w-5 h-5 text-oro" />{p}
               </li>
             ))}
@@ -396,13 +401,13 @@ export default function Landing() {
         <div className="revelar flex flex-col items-center text-center gap-5 max-w-2xl">
           <img src="/cecilia.jpg" alt="Cecilia B. Sánchez" className="w-44 h-44 md:w-52 md:h-52 rounded-full object-cover ring-4 ring-oro-suave" />
           <h2 className="text-3xl md:text-4xl font-extrabold">Cecilia B. Sánchez</h2>
-          <p className="text-gris text-lg">Coach ontológica, eneagramista y abogada. Trabaja con el Eneagrama hace 7 años, creó el método Eneascoaching, que integra Coaching Ontológico y Eneagrama, acompañó a más de 1.800 personas y forma profesionales en su Diplomatura en Eneagrama.</p>
+          <p className="text-gris text-lg">Abogada, coach ontológica y eneagramista. Sabe por experiencia propia que en el trabajo no todo es técnica. Trabaja con el Eneagrama hace 7 años, creó el método Eneascoaching, acompañó a más de 1.800 personas y forma profesionales en su Diplomatura en Eneagrama.</p>
         </div>
         <div className="flex flex-col items-center gap-8 w-full">
-          <h3 className="font-display font-extrabold text-2xl text-center">Lo que dicen quienes trabajaron con Cecilia</h3>
+          <h3 className="revelar font-display font-extrabold text-2xl text-center">Lo que dicen quienes trabajaron con Cecilia</h3>
           <div className="grid md:grid-cols-3 gap-4 w-full">
             {TESTIMONIOS.map((x, i) => (
-              <figure key={x.nombre} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-4">
+              <figure key={x.nombre} style={retraso(i)} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-4">
                 <blockquote className="text-gris leading-relaxed">"{x.texto}"</blockquote>
                 <figcaption className="mt-auto">
                   <p className="font-bold">{x.nombre}</p>
@@ -418,8 +423,8 @@ export default function Landing() {
       <section id="precio" className="bg-tinta text-crema scroll-mt-16">
         <div className="max-w-4xl mx-auto px-5 py-20 flex flex-col items-center gap-10">
           <Encabezado oscuro
-            titulo="Todo esto, por menos de lo que cuesta una sesión individual"
-            texto="Si después querés formarte para trabajar con el Eneagrama, o hacer un proceso personal uno a uno, la Diplomatura y las mentorías de Cecilia siguen disponibles. La Academia es el mejor lugar para empezar." />
+            titulo="Todo esto, por una cuota mensual y sin permanencia"
+            texto="Si después querés formarte como eneagramista, o implementar el Eneagrama en tu empresa, la Diplomatura y las mentorías de Cecilia siguen disponibles. La Academia es el mejor lugar para empezar." />
           <div className="revelar bg-crema text-tinta rounded-2xl p-8 flex flex-col items-center text-center gap-5 w-full max-w-md">
             {precio.disponible && <SelectorMoneda moneda={precio.moneda} elegir={precio.elegir} />}
             <div className="flex flex-col items-center gap-1">
@@ -463,7 +468,7 @@ export default function Landing() {
       <section className="max-w-4xl mx-auto px-5 pb-20">
         <div className="revelar rounded-3xl bg-tinta text-crema px-6 py-14 md:px-14 flex flex-col items-center text-center gap-5">
           <span className="text-crema/80"><Eneagrama tam={64} /></span>
-          <h2 className="text-3xl md:text-4xl font-extrabold leading-tight max-w-2xl">Tu patrón ya está funcionando, lo conozcas o no. <span className="text-oro-claro">Mejor conocerlo.</span></h2>
+          <h2 className="text-3xl md:text-4xl font-extrabold leading-tight max-w-2xl">Detrás de cada caso hay una persona. <span className="text-oro-claro">Aprendé a leerla.</span></h2>
           <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Quiero sumarme por {mensual} al mes <ArrowRight className="w-4 h-4" /></Link>
           {cupos && <p className="text-sm text-crema/70">{cupos}</p>}
         </div>
