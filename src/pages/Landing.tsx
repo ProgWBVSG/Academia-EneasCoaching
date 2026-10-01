@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen, CalendarDays, MessagesSquare, Users, Check, ArrowRight, ChevronDown, Play,
-  Library, Heart, Briefcase, UserRound, Sparkles, Repeat, Brain, Compass, Scale, GraduationCap, Handshake,
+  Library, Heart, Briefcase, UserRound, Sparkles, Repeat, ArrowUp, Brain, Compass, Scale, GraduationCap, Handshake,
 } from 'lucide-react';
 import Eneagrama from '../components/Eneagrama';
 import { useAuth } from '../lib/auth';
@@ -128,7 +128,7 @@ const FAQ = [
 // Título y bajada de cada sección, siempre centrados
 function Encabezado({ titulo, texto, oscuro = false }: { titulo: ReactNode; texto?: ReactNode; oscuro?: boolean }) {
   return (
-    <div className="flex flex-col items-center text-center gap-4 max-w-3xl mx-auto">
+    <div className="revelar flex flex-col items-center text-center gap-4 max-w-3xl mx-auto">
       <h2 className="text-3xl md:text-[2.6rem] font-extrabold leading-[1.15]">{titulo}</h2>
       {texto && <p className={`text-lg ${oscuro ? 'text-crema/75' : 'text-gris'}`}>{texto}</p>}
     </div>
@@ -172,6 +172,27 @@ export default function Landing() {
   const [info, setInfo] = useState<{ miembros: number; proximo: { titulo: string; inicio: string } | null } | null>(null);
   const [abierta, setAbierta] = useState<number | null>(0);
   const [tipo, setTipo] = useState(9);
+
+  // Cada bloque con la clase "revelar" aparece suave al entrar en pantalla.
+  // Solo se ocultan si el navegador puede mostrarlos después (clase "animado" en <html>).
+  useLayoutEffect(() => {
+    if (!('IntersectionObserver' in window)) return;
+    const raiz = document.documentElement;
+    raiz.classList.add('animado');
+    const io = new IntersectionObserver(entradas => entradas.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+    }), { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.revelar').forEach(el => io.observe(el));
+    return () => { io.disconnect(); raiz.classList.remove('animado'); };
+  }, []);
+
+  const [verArriba, setVerArriba] = useState(false);
+  useEffect(() => {
+    const alBajar = () => setVerArriba(window.scrollY > 900);
+    alBajar();
+    window.addEventListener('scroll', alBajar, { passive: true });
+    return () => window.removeEventListener('scroll', alBajar);
+  }, []);
 
   useEffect(() => {
     fetch('/api/academia?action=publico-info').then(r => r.ok ? r.json() : null).then(setInfo).catch(() => {});
@@ -246,14 +267,14 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
           <Encabezado oscuro titulo={<>Hay cosas que se repiten<br /><span className="text-oro-claro">y no es por falta de voluntad</span></>} />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {ESCENAS.map(e => (
-              <div key={e} className="rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-4">
+            {ESCENAS.map((e, i) => (
+              <div key={e} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-4">
                 <Icono icono={Repeat} oscuro />
                 <p className="text-crema/90 text-[15.5px] leading-relaxed">{e}</p>
               </div>
             ))}
           </div>
-          <p className="text-crema text-xl md:text-2xl font-display font-bold leading-snug max-w-3xl text-center">
+          <p className="revelar text-crema text-xl md:text-2xl font-display font-bold leading-snug max-w-3xl text-center">
             El Eneagrama es el mapa que falta. Describe nueve formas de mirar el mundo, qué mueve a cada una y dónde se traba. Cuando reconocés la tuya, esas escenas dejan de ser un misterio.
           </p>
         </div>
@@ -264,12 +285,12 @@ export default function Landing() {
         <Encabezado
           titulo="Nueve tipos, nueve motivaciones distintas"
           texto="No es un horóscopo ni una etiqueta. Describe lo que te mueve por dentro, no solo lo que hacés. Dos personas pueden reaccionar igual por motivos opuestos, y ahí está la clave para entenderlas." />
-        <div className="relative flex justify-center text-tinta">
+        <div className="revelar relative flex justify-center text-tinta">
           <div className="absolute inset-8 rounded-full bg-oro-suave blur-2xl opacity-80" aria-hidden />
           <div className="relative"><Eneagrama tam={380} resaltar={tipo} onElegir={setTipo} /></div>
         </div>
         <p className="text-sm text-gris text-center -mt-4">Tocá un número para ver cada tipo.</p>
-        <div className="tarjeta p-6 md:p-8 flex flex-col items-center text-center gap-3 w-full max-w-2xl" aria-live="polite">
+        <div className="revelar tarjeta p-6 md:p-8 flex flex-col items-center text-center gap-3 w-full max-w-2xl" aria-live="polite">
           <p className="font-display font-extrabold text-2xl"><span className="text-oro">Tipo {tipo}</span>, {t.nombre}</p>
           <p className="text-[15px]"><span className="font-semibold">Qué lo mueve:</span> <span className="text-gris">{t.mueve}</span></p>
           <p className="text-[15px]"><span className="font-semibold">Dónde se traba:</span> <span className="text-gris">{t.traba}</span></p>
@@ -282,8 +303,8 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-12">
           <Encabezado titulo="Lo que cambia cuando entendés cómo funciona cada persona" texto="Lo vas a notar en tres lugares de tu vida." />
           <div className="grid md:grid-cols-3 gap-4">
-            {USOS.map(u => (
-              <div key={u.titulo} className="tarjeta p-7 flex flex-col items-center text-center gap-4">
+            {USOS.map((u, i) => (
+              <div key={u.titulo} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar tarjeta p-7 flex flex-col items-center text-center gap-4">
                 <Icono icono={u.icono} />
                 <h3 className="font-bold text-xl">{u.titulo}</h3>
                 <ul className="flex flex-col gap-3 text-gris text-[15px] leading-relaxed">
@@ -302,8 +323,8 @@ export default function Landing() {
             titulo="Si trabajás con personas, cambia tu forma de trabajar"
             texto="No hace falta ser psicólogo ni coach. Sirve en cualquier trabajo donde entender al otro hace la diferencia." />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {PROFESIONES.map(p => (
-              <div key={p.titulo} className="rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-3">
+            {PROFESIONES.map((p, i) => (
+              <div key={p.titulo} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-3">
                 <Icono icono={p.icono} oscuro />
                 <h3 className="font-bold text-lg">{p.titulo}</h3>
                 <p className="text-crema/75 text-[15px] leading-relaxed">{p.texto}</p>
@@ -311,11 +332,11 @@ export default function Landing() {
             ))}
           </div>
           <div className="flex flex-col items-center gap-6 w-full pt-4">
-            <div className="flex flex-col items-center text-center gap-3 max-w-2xl">
+            <div className="revelar flex flex-col items-center text-center gap-3 max-w-2xl">
               <h3 className="font-display font-extrabold text-2xl md:text-3xl">Y para practicar, un consultante que no sabés de qué tipo es</h3>
               <p className="text-crema/75">La IA hace de consultante en una primera conversación. Vos preguntás y formulás tu hipótesis. Al final te muestra el tipo real y las señales que se te pasaron.</p>
             </div>
-            <div className="bg-crema text-tinta rounded-2xl p-5 flex flex-col gap-3 shadow-xl shadow-black/30 w-full max-w-xl">
+            <div className="revelar bg-crema text-tinta rounded-2xl p-5 flex flex-col gap-3 shadow-xl shadow-black/30 w-full max-w-xl">
               <div className="self-end max-w-[85%] bg-tinta text-crema rounded-2xl rounded-br-sm px-4 py-2.5 text-sm">¿Qué sentiste cuando tu socia tomó esa decisión sin consultarte?</div>
               <div className="self-start max-w-[85%] bg-white border border-linea rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm">Nada grave, la verdad. Está bien, prefiero que no haya lío. Igual después me quedé ordenando papeles hasta tarde, que hacía rato que los tenía pendientes.</div>
               <div className="self-end max-w-[85%] bg-tinta text-crema rounded-2xl rounded-br-sm px-4 py-2.5 text-sm">Decís que está bien, pero te quedaste hasta tarde con otra cosa. ¿Qué no dijiste?</div>
@@ -332,7 +353,7 @@ export default function Landing() {
         <Encabezado titulo="Empezás por vos y llegás a los demás" texto="Así vas a aprender, a tu ritmo y con compañía." />
         <ol className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {CAMINO.map((p, i) => (
-            <li key={p.titulo} className="flex flex-col items-center text-center gap-3">
+            <li key={p.titulo} style={{ '--retraso': `${i * 110}ms` } as CSSProperties} className="revelar flex flex-col items-center text-center gap-3">
               <span className="w-11 h-11 rounded-full bg-tinta text-crema font-display font-extrabold flex items-center justify-center tabular-nums">{i + 1}</span>
               <h3 className="font-bold text-lg">{p.titulo}</h3>
               <p className="text-gris text-[15px] leading-relaxed">{p.texto}</p>
@@ -345,8 +366,8 @@ export default function Landing() {
       <section id="incluye" className="max-w-6xl mx-auto px-5 pb-20 scroll-mt-16 flex flex-col gap-10">
         <Encabezado titulo="Todo en un solo lugar, por una cuota mensual" />
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {INCLUYE.map(x => (
-            <div key={x.titulo} className="tarjeta p-6 flex flex-col items-center text-center gap-3">
+          {INCLUYE.map((x, i) => (
+            <div key={x.titulo} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-3">
               <Icono icono={x.icono} />
               <h3 className="font-bold text-lg">{x.titulo}</h3>
               <p className="text-gris text-[15px] leading-relaxed">{x.texto}</p>
@@ -360,8 +381,8 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto px-5 py-20 flex flex-col items-center gap-10">
           <Encabezado titulo="La Academia es para vos si te reconocés en alguna de estas" />
           <ul className="grid sm:grid-cols-2 gap-4 w-full">
-            {PARA_VOS.map(p => (
-              <li key={p} className="tarjeta p-5 flex flex-col items-center text-center gap-3 text-[15px]">
+            {PARA_VOS.map((p, i) => (
+              <li key={p} style={{ '--retraso': `${(i % 2) * 110}ms` } as CSSProperties} className="revelar tarjeta p-5 flex flex-col items-center text-center gap-3 text-[15px]">
                 <Check className="w-5 h-5 text-oro" />{p}
               </li>
             ))}
@@ -372,7 +393,7 @@ export default function Landing() {
 
       {/* Cecilia y testimonios */}
       <section className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-14">
-        <div className="flex flex-col items-center text-center gap-5 max-w-2xl">
+        <div className="revelar flex flex-col items-center text-center gap-5 max-w-2xl">
           <img src="/cecilia.jpg" alt="Cecilia B. Sánchez" className="w-44 h-44 md:w-52 md:h-52 rounded-full object-cover ring-4 ring-oro-suave" />
           <h2 className="text-3xl md:text-4xl font-extrabold">Cecilia B. Sánchez</h2>
           <p className="text-gris text-lg">Coach ontológica, eneagramista y abogada. Trabaja con el Eneagrama hace 7 años, creó el método Eneascoaching, que integra Coaching Ontológico y Eneagrama, acompañó a más de 1.800 personas y forma profesionales en su Diplomatura en Eneagrama.</p>
@@ -380,8 +401,8 @@ export default function Landing() {
         <div className="flex flex-col items-center gap-8 w-full">
           <h3 className="font-display font-extrabold text-2xl text-center">Lo que dicen quienes trabajaron con Cecilia</h3>
           <div className="grid md:grid-cols-3 gap-4 w-full">
-            {TESTIMONIOS.map(x => (
-              <figure key={x.nombre} className="tarjeta p-6 flex flex-col items-center text-center gap-4">
+            {TESTIMONIOS.map((x, i) => (
+              <figure key={x.nombre} style={{ '--retraso': `${(i % 3) * 110}ms` } as CSSProperties} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-4">
                 <blockquote className="text-gris leading-relaxed">"{x.texto}"</blockquote>
                 <figcaption className="mt-auto">
                   <p className="font-bold">{x.nombre}</p>
@@ -399,7 +420,7 @@ export default function Landing() {
           <Encabezado oscuro
             titulo="Todo esto, por menos de lo que cuesta una sesión individual"
             texto="Si después querés formarte para trabajar con el Eneagrama, o hacer un proceso personal uno a uno, la Diplomatura y las mentorías de Cecilia siguen disponibles. La Academia es el mejor lugar para empezar." />
-          <div className="bg-crema text-tinta rounded-2xl p-8 flex flex-col items-center text-center gap-5 w-full max-w-md">
+          <div className="revelar bg-crema text-tinta rounded-2xl p-8 flex flex-col items-center text-center gap-5 w-full max-w-md">
             {precio.disponible && <SelectorMoneda moneda={precio.moneda} elegir={precio.elegir} />}
             <div className="flex flex-col items-center gap-1">
               {lanzamiento && <p className="text-gris text-lg tabular-nums"><s>{precio.fmt(PRECIO_LISTA_USD)}</s></p>}
@@ -426,7 +447,7 @@ export default function Landing() {
       {/* Preguntas frecuentes */}
       <section className="max-w-3xl mx-auto px-5 py-20 flex flex-col gap-8">
         <Encabezado titulo="Preguntas frecuentes" />
-        <div className="flex flex-col gap-3">
+        <div className="revelar flex flex-col gap-3">
           {FAQ.map(([p, r], i) => (
             <div key={p} className="tarjeta">
               <button onClick={() => setAbierta(abierta === i ? null : i)} aria-expanded={abierta === i} className="w-full flex items-center justify-center gap-3 text-center px-5 py-4 font-semibold">
@@ -440,13 +461,19 @@ export default function Landing() {
 
       {/* Cierre */}
       <section className="max-w-4xl mx-auto px-5 pb-20">
-        <div className="rounded-3xl bg-tinta text-crema px-6 py-14 md:px-14 flex flex-col items-center text-center gap-5">
+        <div className="revelar rounded-3xl bg-tinta text-crema px-6 py-14 md:px-14 flex flex-col items-center text-center gap-5">
           <span className="text-crema/80"><Eneagrama tam={64} /></span>
           <h2 className="text-3xl md:text-4xl font-extrabold leading-tight max-w-2xl">Tu patrón ya está funcionando, lo conozcas o no. <span className="text-oro-claro">Mejor conocerlo.</span></h2>
           <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Quiero sumarme por {mensual} al mes <ArrowRight className="w-4 h-4" /></Link>
           {cupos && <p className="text-sm text-crema/70">{cupos}</p>}
         </div>
       </section>
+
+      <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Volver arriba"
+        className={`fixed right-5 z-40 w-12 h-12 rounded-full bg-tinta text-oro-claro shadow-lg shadow-black/25 flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 ${verArriba ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+        style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }} tabIndex={verArriba ? 0 : -1}>
+        <ArrowUp className="w-5 h-5" />
+      </button>
 
       <footer className="border-t border-linea">
         <div className="max-w-6xl mx-auto px-5 py-8 flex flex-col items-center gap-2 text-sm text-gris text-center">
