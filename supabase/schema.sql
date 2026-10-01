@@ -108,6 +108,7 @@ create or replace function academia_sumar_puntos(uid uuid, n integer)
 returns void language sql as $$
   update academia_perfiles set puntos = greatest(0, puntos + n) where id = uid;
 $$;
+revoke execute on function academia_sumar_puntos(uuid, integer) from public, anon, authenticated;
 
 alter table academia_perfiles enable row level security;
 alter table academia_posts enable row level security;

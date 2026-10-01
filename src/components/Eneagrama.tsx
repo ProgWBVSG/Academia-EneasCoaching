@@ -1,6 +1,6 @@
 // El símbolo del Eneagrama: círculo, triángulo 3-6-9 y héxada 1-4-2-8-5-7.
 // Se usa como identidad visual de la academia.
-export default function Eneagrama({ tam = 320, resaltar }: { tam?: number; resaltar?: number }) {
+export default function Eneagrama({ tam = 320, resaltar, onElegir }: { tam?: number; resaltar?: number; onElegir?: (tipo: number) => void }) {
   const r = 42;
   const pt = (k: number) => {
     const a = ((-90 + (k % 9) * 40) * Math.PI) / 180;
@@ -16,7 +16,14 @@ export default function Eneagrama({ tam = 320, resaltar }: { tam?: number; resal
         const [x, y] = pt(k);
         const activo = resaltar === k;
         return (
-          <g key={k}>
+          <g key={k}
+            {...(onElegir ? {
+              role: 'button', tabIndex: 0, 'aria-label': `Tipo ${k}`, 'aria-pressed': activo,
+              style: { cursor: 'pointer' },
+              onClick: () => onElegir(k),
+              onKeyDown: (e: { key: string; preventDefault: () => void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onElegir(k); } },
+            } : {})}>
+            {onElegir && <circle cx={x} cy={y} r="7" fill="transparent" />}
             <circle cx={x} cy={y} r={activo ? 4.4 : 3.6} fill={activo ? 'var(--color-oro)' : 'var(--color-crema)'} stroke="var(--color-oro)" strokeWidth=".6" />
             <text x={x} y={y + 1.35} textAnchor="middle" fontSize="3.8" fontWeight="700" fontFamily="Montserrat, sans-serif" fill={activo ? '#fff' : 'currentColor'}>{k}</text>
           </g>
