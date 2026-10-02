@@ -3,3 +3,6 @@ dist
 .env
 .env.local
 .vercel
+
+# Videos pesados: no van al repositorio
+public/vsl/*.mp4

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen, CalendarDays, MessagesSquare, Users, Check, ArrowRight, ChevronDown, Play,
@@ -19,6 +19,8 @@ const WEB = 'https://www.cecimentorcoach.com';
 // Video de presentación de Cecilia. Acepta un link de YouTube, de Vimeo o un .mp4.
 // Mientras no esté cargado, se muestra la foto de Cecilia con el aviso.
 const VSL = (import.meta.env.VITE_VSL_URL as string | undefined)?.trim() || '';
+// Portada del video propio: el cuadro de Cecilia diciendo "este video es para vos"
+const VSL_PORTADA = (import.meta.env.VITE_VSL_POSTER as string | undefined)?.trim() || '/vsl/poster.jpg';
 
 function urlEmbed(url: string): string | null {
   const yt = url.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/);
@@ -222,6 +224,28 @@ function TarjetaTestimonio({ t, style }: { t: Testimonio; style: CSSProperties }
   );
 }
 
+// Video propio (.mp4): muestra la portada con un botón de play grande y, al tocarlo,
+// arranca con sonido y con los controles del navegador.
+function VideoPropio() {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [empezado, setEmpezado] = useState(false);
+  const reproducir = () => { setEmpezado(true); ref.current?.play().catch(() => {}); };
+  return (
+    <>
+      <video ref={ref} src={VSL} poster={VSL_PORTADA} controls={empezado} playsInline preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover" onPlay={() => setEmpezado(true)} />
+      {!empezado && (
+        <button type="button" onClick={reproducir} aria-label="Ver el video de Cecilia"
+          className="absolute inset-0 flex items-center justify-center bg-tinta/15 hover:bg-tinta/5 transition-colors group">
+          <span className="w-20 h-20 rounded-full bg-oro/95 text-white flex items-center justify-center shadow-xl shadow-black/30 group-hover:scale-105 transition-transform">
+            <Play className="w-9 h-9 fill-current ml-1" />
+          </span>
+        </button>
+      )}
+    </>
+  );
+}
+
 function VideoCecilia() {
   const embed = VSL ? urlEmbed(VSL) : null;
   return (
@@ -230,7 +254,7 @@ function VideoCecilia() {
         <iframe src={embed} title="Cecilia te cuenta qué es la Academia" className="absolute inset-0 w-full h-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
       ) : VSL ? (
-        <video src={VSL} poster="/cecilia.jpg" controls playsInline className="absolute inset-0 w-full h-full object-cover" />
+        <VideoPropio />
       ) : (
         <>
           <img src="/cecilia.jpg" alt="" className="absolute inset-0 w-full h-full object-cover opacity-45" />
