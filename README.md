@@ -28,7 +28,8 @@ Membresía de USD 39/mes de Cecilia B. Sánchez para profesionales que usan el E
 | `ACADEMIA_PRECIO_ARS` | Precio mensual en pesos para la suscripción |
 | `ANTHROPIC_API_KEY` | Activa el laboratorio de práctica |
 | `ACADEMIA_IA_MODEL` | Opcional. Por defecto `claude-opus-5` |
-| `VITE_VSL_URL` | Link del video de Cecilia en la landing (YouTube, Vimeo o .mp4). Sin él, se ve su foto con el aviso "se publica muy pronto" |
+| `VITE_VSL_URL` | Link del video de Cecilia en la landing (YouTube, Vimeo o .mp4). En local: `/vsl/vsl-cecilia.mp4` (comprimido a 1080p, no se sube al repositorio). Sin él, se ve su foto con el aviso "se publica muy pronto" |
+| `VITE_VSL_POSTER` | Opcional. Portada del video .mp4. Por defecto `/vsl/poster.jpg` |
 
 ## Mercado Pago
 
