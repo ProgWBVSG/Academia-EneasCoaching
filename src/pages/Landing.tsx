@@ -84,13 +84,39 @@ const CAMINO = [
   { titulo: 'Practicá con casos reales', texto: 'Traés tus casos a los vivos y practicás en el laboratorio. Si querés formarte a fondo, la Diplomatura.' },
 ];
 
-const INCLUYE = [
-  { icono: BookOpen, titulo: 'Cursos desde cero', texto: 'Los nueve tipos, cómo leer a la persona que tenés enfrente, conversaciones difíciles, equipos y un recorrido para cada profesión. Lecciones nuevas todas las semanas.' },
-  { icono: CalendarDays, titulo: 'Dos vivos por mes con Cecilia', texto: 'Una clase temática y un encuentro donde traés un caso real de tu trabajo y lo miramos en grupo. Si no llegás, queda grabado.' },
-  { icono: Library, titulo: 'Biblioteca', texto: 'Fichas de cada tipo para entender a tus clientes, guías para conversaciones difíciles, y meditaciones y ejercicios para vos.' },
-  { icono: Users, titulo: 'EneaTeams', texto: 'La plataforma de Eneagrama de Cecilia. Hacés tu test con el informe de tu tipo y ves el mapa de tu equipo: cómo se comunica cada persona y dónde chocan.' },
+// Lo que incluye la comunidad: cuatro pilares y dos herramientas
+const PILARES = [
+  { icono: BookOpen, titulo: 'Cursos grabados', bajada: 'Para aprender a tu ritmo, desde cero.', items: [
+    'Qué es el Eneagrama, los tres centros y los nueve tipos.',
+    'Cómo leer a la persona que tenés enfrente: señales, preguntas y tipos que se confunden.',
+    'Conversaciones difíciles: malas noticias, conflictos, negociaciones y devoluciones.',
+    'Equipos: el mapa del grupo, los roces previsibles y cómo repartir tareas.',
+    'Recorridos por profesión: abogacía, salud, psicología y coaching, educación y RRHH.',
+    'Lecciones de 8 a 15 minutos, y una nueva cada semana.',
+  ] },
+  { icono: CalendarDays, titulo: 'Dos clases en vivo por mes', bajada: 'Para preguntar y ver casos reales, con Cecilia.', items: [
+    'Una clase para profundizar un tema, con tiempo para preguntas.',
+    'Un encuentro de casos: traés una situación de tu trabajo y la pensamos en grupo.',
+    'Los casos se comparten sin datos que identifiquen a nadie.',
+    'Si no llegás, quedan grabadas.',
+  ] },
+  { icono: MessagesSquare, titulo: 'Networking con colegas', bajada: 'Para compartir estrategias con otros profesionales.', items: [
+    'Abogados, psicólogos, coaches, docentes y profesionales de la salud y de RRHH en un mismo lugar.',
+    'Compartís lo que te funcionó con un cliente y ves cómo lo aplica cada profesión.',
+    'Un directorio por profesión y país para conectar, derivar o armar alianzas.',
+    'Retos de práctica cada mes, y puntos que abren nuevos cursos.',
+  ] },
+  { icono: Library, titulo: 'Material para tu trabajo', bajada: 'Para tener a mano antes de cada conversación.', items: [
+    'Fichas de cada tipo: qué lo mueve, cómo hablarle y qué evitar.',
+    'Guías para conversaciones difíciles y preguntas para cada tipo.',
+    'Plantillas para un informe de devolución o una propuesta de taller.',
+    'Meditaciones y ejercicios para trabajar tu propio tipo.',
+  ] },
+];
+
+const EXTRAS = [
+  { icono: Users, titulo: 'EneaTeams', texto: 'La plataforma de Eneagrama de Cecilia: tu test completo con el informe de tu tipo, y el mapa de tu equipo.' },
   { icono: Sparkles, titulo: 'Laboratorio de práctica', texto: 'Una conversación con un cliente simulado por IA, de un tipo que no conocés. Al final te devuelve qué viste y qué se te pasó.' },
-  { icono: MessagesSquare, titulo: 'Comunidad de colegas', texto: 'Profesionales de distintas áreas que usan la misma herramienta. Preguntás, compartís casos y sumás puntos que abren nuevos cursos.' },
 ];
 
 const PARA_VOS = [
@@ -109,17 +135,18 @@ const TESTIMONIOS = [
 ];
 
 const INCLUYE_PRECIO = [
-  'Cursos desde cero y lecciones nuevas cada semana',
-  'Clase en vivo y encuentro de casos con Cecilia, todos los meses',
-  'Fichas de cada tipo y guías para conversaciones difíciles',
-  'EneaTeams: tu test completo y el mapa de tu equipo',
-  'Laboratorio de práctica y comunidad de colegas',
+  'Cursos grabados y una lección nueva cada semana',
+  'Dos clases en vivo por mes con Cecilia',
+  'Networking con profesionales de distintas áreas',
+  'Fichas, guías y plantillas para tu trabajo',
+  'EneaTeams y laboratorio de práctica',
 ];
 
 const FAQ = [
   ['¿Necesito saber algo de Eneagrama?', 'No. Arrancás haciendo tu test y las primeras clases explican todo desde cero, con ejemplos de distintos trabajos.'],
   ['Mi profesión no es psicología ni coaching. ¿Me sirve?', 'Sí. Está pensada para cualquier trabajo con personas del otro lado: derecho, salud, educación, recursos humanos, equipos. Hay ejemplos y casos de cada área.'],
   ['¿El Eneagrama es algo esotérico?', 'Es un modelo de personalidad que describe qué motiva a cada persona y cómo reacciona. Se usa en empresas, en psicoterapia y en coaching. Acá lo aprendés con casos concretos y cada herramienta te dice para qué sirve y cuándo usarla.'],
+  ['¿Con quién voy a compartir la comunidad?', 'Con profesionales de distintas áreas que trabajan con personas: abogados, psicólogos, coaches, docentes, gente de salud y de recursos humanos. Esa mezcla es parte del valor: ves cómo usa la misma herramienta alguien que trabaja distinto que vos.'],
   ['¿Me sirve también en lo personal?', 'Sí. Para usarlo con otros primero entendés tu propio tipo, y eso se nota en tus vínculos. Pero el foco de la Academia es aplicarlo en tu trabajo.'],
   ['¿Cuánto tiempo necesito?', 'Con media hora por semana avanzás. Las lecciones duran entre 8 y 15 minutos. Los vivos se anuncian en el calendario con el horario de tu país y quedan grabados.'],
   ['¿Qué diferencia hay con la Diplomatura?', 'La Academia es para aprender a usar el Eneagrama en tu trabajo, a tu ritmo y con colegas. La Diplomatura es la formación completa para trabajar como eneagramista, con práctica supervisada y diploma. Mucha gente empieza por acá.'],
@@ -369,10 +396,23 @@ export default function Landing() {
 
       {/* Qué incluye */}
       <section id="incluye" className="max-w-6xl mx-auto px-5 pb-20 scroll-mt-16 flex flex-col gap-10">
-        <Encabezado titulo="Todo lo que necesitás para aplicarlo, en un solo lugar" />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {INCLUYE.map((x, i) => (
-            <div key={x.titulo} style={retraso(i)} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-3">
+        <Encabezado titulo="Todo lo que incluye la comunidad" texto="Cuatro pilares para aprender, practicar y pensar con otros, y dos herramientas para usar en tu trabajo." />
+        <div className="grid md:grid-cols-2 gap-4">
+          {PILARES.map((p, i) => (
+            <div key={p.titulo} style={retraso(i, 2)} className="revelar tarjeta p-7 md:p-8 flex flex-col items-center text-center gap-3">
+              <Icono icono={p.icono} />
+              <h3 className="font-bold text-xl">{p.titulo}</h3>
+              <p className="text-oro font-semibold text-[15px]">{p.bajada}</p>
+              <ul className="flex flex-col gap-2.5 text-gris text-[15px] leading-relaxed mt-1">
+                {p.items.map(x => <li key={x}>{x}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <h3 className="revelar font-display font-extrabold text-2xl text-center pt-4">Y además, dos herramientas</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          {EXTRAS.map((x, i) => (
+            <div key={x.titulo} style={retraso(i, 2)} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-3">
               <Icono icono={x.icono} />
               <h3 className="font-bold text-lg">{x.titulo}</h3>
               <p className="text-gris text-[15px] leading-relaxed">{x.texto}</p>
