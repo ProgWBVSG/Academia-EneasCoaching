@@ -77,22 +77,29 @@ const USOS = [
   ] },
 ];
 
-const CAMINO = [
-  { titulo: 'Descubrí tu tipo', texto: 'Para leer a otros, primero te leés a vos. El primer día hacés tu test completo en EneaTeams.' },
-  { titulo: 'Conocé los nueve tipos', texto: 'Lecciones de 8 a 15 minutos, desde cero y sin tecnicismos, con escenas de distintos trabajos.' },
-  { titulo: 'Aplicalo en tu trabajo', texto: 'Recorridos para leer a tus clientes, manejar conversaciones difíciles, armar equipos y usarlo en tu profesión.' },
-  { titulo: 'Practicá con casos reales', texto: 'Traés tus casos a los vivos y practicás en el laboratorio. Si querés formarte a fondo, la Diplomatura.' },
+const CAMINOS = [
+  { titulo: 'Si nunca lo estudiaste', bajada: 'Aprendés las bases, desde cero.', items: [
+    'Descubrís tu tipo con el test de EneaTeams.',
+    'Entendés qué es el Eneagrama, los tres centros y los nueve tipos.',
+    'Empezás a reconocerlos en las personas con las que trabajás.',
+    'Preguntás en los vivos lo que no te quedó claro.',
+  ] },
+  { titulo: 'Si ya lo conocés', bajada: 'Encontrás con quién practicarlo y compartirlo.', items: [
+    'Colegas de distintas profesiones que hablan tu mismo idioma.',
+    'Casos reales en los vivos con Cecilia, para que la herramienta no quede en la teoría.',
+    'El laboratorio y los retos del mes, para mantenerla en práctica.',
+    'Fichas de cada tipo para repasar antes de una conversación importante.',
+  ] },
 ];
 
 // Lo que incluye la comunidad: cuatro pilares y dos herramientas
 const PILARES = [
-  { icono: BookOpen, titulo: 'Cursos grabados', bajada: 'Para aprender a tu ritmo, desde cero.', items: [
-    'Qué es el Eneagrama, los tres centros y los nueve tipos.',
-    'Cómo leer a la persona que tenés enfrente: señales, preguntas y tipos que se confunden.',
-    'Conversaciones difíciles: malas noticias, conflictos, negociaciones y devoluciones.',
-    'Equipos: el mapa del grupo, los roces previsibles y cómo repartir tareas.',
-    'Recorridos por profesión: abogacía, salud, psicología y coaching, educación y RRHH.',
-    'Lecciones de 8 a 15 minutos, y una nueva cada semana.',
+  { icono: BookOpen, titulo: 'Cursos grabados', bajada: 'Las bases del Eneagrama, a tu ritmo.', items: [
+    'Qué es el Eneagrama y qué no es.',
+    'Los tres centros: cuerpo, corazón y mente.',
+    'Los nueve tipos: qué mueve a cada uno y cómo se nota en el trabajo.',
+    'Primeras claves para reconocerlos en las personas con las que trabajás.',
+    'Lecciones cortas, de 8 a 15 minutos.',
   ] },
   { icono: CalendarDays, titulo: 'Dos clases en vivo por mes', bajada: 'Para preguntar y ver casos reales, con Cecilia.', items: [
     'Una clase para profundizar un tema, con tiempo para preguntas.',
@@ -101,15 +108,14 @@ const PILARES = [
     'Si no llegás, quedan grabadas.',
   ] },
   { icono: MessagesSquare, titulo: 'Networking con colegas', bajada: 'Para compartir estrategias con otros profesionales.', items: [
-    'Abogados, psicólogos, coaches, docentes y profesionales de la salud y de RRHH en un mismo lugar.',
+    'Abogados, psicólogos, coaches, docentes y profesionales de la salud y de RRHH que usan la misma herramienta.',
     'Compartís lo que te funcionó con un cliente y ves cómo lo aplica cada profesión.',
     'Un directorio por profesión y país para conectar, derivar o armar alianzas.',
     'Retos de práctica cada mes, y puntos que abren nuevos cursos.',
   ] },
   { icono: Library, titulo: 'Material para tu trabajo', bajada: 'Para tener a mano antes de cada conversación.', items: [
     'Fichas de cada tipo: qué lo mueve, cómo hablarle y qué evitar.',
-    'Guías para conversaciones difíciles y preguntas para cada tipo.',
-    'Plantillas para un informe de devolución o una propuesta de taller.',
+    'Preguntas sencillas para reconocer cada tipo en una conversación.',
     'Meditaciones y ejercicios para trabajar tu propio tipo.',
   ] },
 ];
@@ -124,7 +130,7 @@ const PARA_VOS = [
   'Tenés clientes, pacientes, alumnos o un equipo que a veces no sabés cómo leer.',
   'Querés trabajar con más humanidad sin perder profesionalismo.',
   'Nunca estudiaste el Eneagrama y querés aprenderlo para aplicarlo, no como teoría.',
-  'Ya lo conocés y querés usarlo en tu trabajo con más seguridad.',
+  'Ya lo conocés, pero te cuesta llevarlo a tus conversaciones de trabajo.',
   'Preferís aprender con colegas y con casos reales, no solo con videos.',
 ];
 
@@ -135,21 +141,22 @@ const TESTIMONIOS = [
 ];
 
 const INCLUYE_PRECIO = [
-  'Cursos grabados y una lección nueva cada semana',
+  'Cursos grabados con las bases del Eneagrama',
   'Dos clases en vivo por mes con Cecilia',
   'Networking con profesionales de distintas áreas',
-  'Fichas, guías y plantillas para tu trabajo',
+  'Fichas de cada tipo para tu trabajo',
   'EneaTeams y laboratorio de práctica',
 ];
 
 const FAQ = [
-  ['¿Necesito saber algo de Eneagrama?', 'No. Arrancás haciendo tu test y las primeras clases explican todo desde cero, con ejemplos de distintos trabajos.'],
+  ['¿Necesito saber algo de Eneagrama?', 'No. Si nunca lo estudiaste, arrancás haciendo tu test y las primeras clases explican todo desde cero, con ejemplos de distintos trabajos.'],
+  ['Ya conozco el Eneagrama. ¿Me sirve?', 'Sí. Los cursos son las bases y podés repasarlas cuando quieras, pero lo que más vas a aprovechar es la comunidad: los casos en vivo con Cecilia, la práctica en el laboratorio y el networking con colegas que usan la misma herramienta. Si buscás profundidad, la Diplomatura es el camino.'],
   ['Mi profesión no es psicología ni coaching. ¿Me sirve?', 'Sí. Está pensada para cualquier trabajo con personas del otro lado: derecho, salud, educación, recursos humanos, equipos. Hay ejemplos y casos de cada área.'],
   ['¿El Eneagrama es algo esotérico?', 'Es un modelo de personalidad que describe qué motiva a cada persona y cómo reacciona. Se usa en empresas, en psicoterapia y en coaching. Acá lo aprendés con casos concretos y cada herramienta te dice para qué sirve y cuándo usarla.'],
   ['¿Con quién voy a compartir la comunidad?', 'Con profesionales de distintas áreas que trabajan con personas: abogados, psicólogos, coaches, docentes, gente de salud y de recursos humanos. Esa mezcla es parte del valor: ves cómo usa la misma herramienta alguien que trabaja distinto que vos.'],
   ['¿Me sirve también en lo personal?', 'Sí. Para usarlo con otros primero entendés tu propio tipo, y eso se nota en tus vínculos. Pero el foco de la Academia es aplicarlo en tu trabajo.'],
   ['¿Cuánto tiempo necesito?', 'Con media hora por semana avanzás. Las lecciones duran entre 8 y 15 minutos. Los vivos se anuncian en el calendario con el horario de tu país y quedan grabados.'],
-  ['¿Qué diferencia hay con la Diplomatura?', 'La Academia es para aprender a usar el Eneagrama en tu trabajo, a tu ritmo y con colegas. La Diplomatura es la formación completa para trabajar como eneagramista, con práctica supervisada y diploma. Mucha gente empieza por acá.'],
+  ['¿Qué diferencia hay con la Diplomatura?', 'La Academia te da las bases del Eneagrama y una comunidad para practicarlo, a tu ritmo y con colegas. La Diplomatura es la formación completa y en profundidad para trabajar como eneagramista, con práctica supervisada y diploma. Mucha gente empieza por acá.'],
   ['¿Qué pasa con el precio? ¿Puedo cancelar?', 'Las primeras 100 personas pagan USD 39 por mes y mantienen ese precio mientras sigan en la Academia. Después, el precio es USD 59. Es una suscripción sin permanencia y la cancelás cuando quieras.'],
   ['¿Cómo pago desde fuera de Argentina?', 'Escribinos por WhatsApp y te pasamos la forma de pago para tu país.'],
 ];
@@ -268,7 +275,7 @@ export default function Landing() {
         </h1>
         <div className="w-full"><VideoCecilia /></div>
         <p className="text-lg md:text-xl text-gris max-w-2xl">
-          El Eneagrama describe nueve formas de sentir, pensar y reaccionar. En la Academia aprendés desde cero a usarlo con tus clientes, tus pacientes y tu equipo, para trabajar con más humanidad y mejores resultados. Con Cecilia B. Sánchez, abogada y eneagramista.
+          El Eneagrama describe nueve formas de sentir, pensar y reaccionar. En la Academia aprendés a usarlo con tus clientes, tus pacientes y tu equipo, para trabajar con más humanidad y mejores resultados. Si nunca lo estudiaste, aprendés las bases. Si ya lo conocés, encontrás una comunidad para practicarlo y compartirlo. Con Cecilia B. Sánchez, abogada y eneagramista.
         </p>
         <div className="flex flex-wrap justify-center items-center gap-3">
           <Link to={cta} className="btn btn-oro text-base !px-7 !py-3.5">Quiero sumarme por {mensual} al mes <ArrowRight className="w-4 h-4" /></Link>
@@ -284,7 +291,7 @@ export default function Landing() {
           {cupos && <span className="font-semibold text-oro">{cupos}</span>}
         </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gris">
-          <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> No necesitás saber nada de Eneagrama</span>
+          <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Para quien empieza y para quien ya lo conoce</span>
           <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Para cualquier profesión con personas</span>
           <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Cancelás cuando quieras</span>
           {info?.proximo && (
@@ -380,23 +387,29 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* El camino */}
+      {/* Dos puntos de partida */}
       <section className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-12">
-        <Encabezado titulo="De no saber nada a usarlo con tus clientes" texto="Así vas a aprender, a tu ritmo y con colegas." />
-        <ol className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {CAMINO.map((p, i) => (
-            <li key={p.titulo} style={retraso(i, 4)} className="revelar flex flex-col items-center text-center gap-3">
-              <span className="w-11 h-11 rounded-full bg-tinta text-crema font-display font-extrabold flex items-center justify-center tabular-nums">{i + 1}</span>
-              <h3 className="font-bold text-lg">{p.titulo}</h3>
-              <p className="text-gris text-[15px] leading-relaxed">{p.texto}</p>
-            </li>
+        <Encabezado titulo="Sepas o no de Eneagrama, hay algo para vos" texto="La Academia te da las bases y una comunidad para practicar. Si después buscás profundidad, la Diplomatura y las mentorías son el siguiente paso." />
+        <div className="grid md:grid-cols-2 gap-4">
+          {CAMINOS.map((c, i) => (
+            <div key={c.titulo} style={retraso(i, 2)} className="revelar tarjeta p-7 md:p-8 flex flex-col items-center text-center gap-5">
+              <div className="flex flex-col items-center gap-1"><h3 className="font-display font-extrabold text-2xl">{c.titulo}</h3><p className="text-oro font-semibold text-[15px]">{c.bajada}</p></div>
+              <ul className="flex flex-col items-center gap-4">
+                {c.items.map(x => (
+                  <li key={x} className="flex flex-col items-center gap-2">
+                    <Check className="w-5 h-5 text-oro" />
+                    <span className="text-gris text-[15px] leading-relaxed max-w-sm">{x}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ol>
+        </div>
       </section>
 
       {/* Qué incluye */}
       <section id="incluye" className="max-w-6xl mx-auto px-5 pb-20 scroll-mt-16 flex flex-col gap-10">
-        <Encabezado titulo="Todo lo que incluye la comunidad" texto="Cuatro pilares para aprender, practicar y pensar con otros, y dos herramientas para usar en tu trabajo." />
+        <Encabezado titulo="Todo lo que incluye la comunidad" texto="Cuatro pilares para aprender las bases, practicar y pensar con otros, y dos herramientas para usar en tu trabajo." />
         <div className="grid md:grid-cols-2 gap-4">
           {PILARES.map((p, i) => (
             <div key={p.titulo} style={retraso(i, 2)} className="revelar tarjeta p-7 md:p-8 flex flex-col items-center text-center gap-3">
