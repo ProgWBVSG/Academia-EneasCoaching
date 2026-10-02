@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   BookOpen, CalendarDays, MessagesSquare, Users, Check, ArrowRight, ChevronDown, Play,
   Library, Briefcase, UserRound, Sparkles, ArrowUp, Brain, Compass, Scale, GraduationCap, Stethoscope,
-  Handshake, MessageCircleWarning,
+  Handshake, MessageCircleWarning, Mic,
 } from 'lucide-react';
 import Eneagrama from '../components/Eneagrama';
 import { useAuth } from '../lib/auth';
@@ -84,8 +84,8 @@ const CAMINOS = [
     'Empezás a reconocerlos en las personas con las que trabajás.',
     'Preguntás en los vivos lo que no te quedó claro.',
   ] },
-  { titulo: 'Si ya lo conocés', bajada: 'Encontrás con quién practicarlo y compartirlo.', items: [
-    'Colegas de distintas profesiones que hablan tu mismo idioma.',
+  { titulo: 'Si ya lo conocés', bajada: 'Saber tu tipo es solo el principio.', items: [
+    'Encontrás con quién practicarlo: colegas de distintas profesiones que hablan tu mismo idioma.',
     'Casos reales en los vivos con Cecilia, para que la herramienta no quede en la teoría.',
     'El laboratorio y los retos del mes, para mantenerla en práctica.',
     'Fichas de cada tipo para repasar antes de una conversación importante.',
@@ -127,17 +127,24 @@ const EXTRAS = [
 
 const PARA_VOS = [
   'Trabajás con personas y sentís que la técnica no siempre te alcanza para llegarles.',
-  'Tenés clientes, pacientes, alumnos o un equipo que a veces no sabés cómo leer.',
+  'Estás dispuesto a observarte con honestidad antes de observar a los demás.',
   'Querés trabajar con más humanidad sin perder profesionalismo.',
   'Nunca estudiaste el Eneagrama y querés aprenderlo para aplicarlo, no como teoría.',
   'Ya lo conocés, pero te cuesta llevarlo a tus conversaciones de trabajo.',
   'Preferís aprender con colegas y con casos reales, no solo con videos.',
 ];
 
-const TESTIMONIOS = [
-  { texto: 'Cecilia tiene una calidez única. Su método me ayudó a entender por qué repetía los mismos patrones y cómo liberarme de ellos con amor y consciencia.', nombre: 'María G.', programa: 'Mentoría' },
-  { texto: 'La diplomatura cambió mi forma de ver el mundo. No solo aprendí teoría, sino que viví una transformación personal profunda que ahora aplico en mi profesión.', nombre: 'Gemma J. Fares', programa: 'Diplomatura' },
-  { texto: 'Agradecida a la vida por haberte encontrado este año. Gracias por enseñarme tantas cosas.', nombre: 'Majo E.', programa: 'Mentoría' },
+// Testimonios. Se cargan de cuatro formas:
+//   video:  url de YouTube, Vimeo o un .mp4 en public/testimonios/
+//   audio:  url de un .mp3 o .m4a en public/testimonios/ (por ejemplo un audio de WhatsApp), con una frase en "texto"
+//   imagen: captura de un mensaje en public/testimonios/
+//   texto:  la frase escrita
+// "detalle" es la profesión o el programa de la persona.
+type Testimonio = { tipo: 'video' | 'audio' | 'imagen' | 'texto'; nombre: string; detalle: string; texto?: string; url?: string };
+const TESTIMONIOS: Testimonio[] = [
+  { tipo: 'texto', texto: 'Cecilia tiene una calidez única. Su método me ayudó a entender por qué repetía los mismos patrones y cómo liberarme de ellos con amor y consciencia.', nombre: 'María G.', detalle: 'Mentoría' },
+  { tipo: 'texto', texto: 'La diplomatura cambió mi forma de ver el mundo. No solo aprendí teoría, sino que viví una transformación personal profunda que ahora aplico en mi profesión.', nombre: 'Gemma J. Fares', detalle: 'Diplomatura' },
+  { tipo: 'texto', texto: 'Agradecida a la vida por haberte encontrado este año. Gracias por enseñarme tantas cosas.', nombre: 'Majo E.', detalle: 'Mentoría' },
 ];
 
 const INCLUYE_PRECIO = [
@@ -155,10 +162,17 @@ const FAQ = [
   ['¿El Eneagrama es algo esotérico?', 'Es un modelo de personalidad que describe qué motiva a cada persona y cómo reacciona. Se usa en empresas, en psicoterapia y en coaching. Acá lo aprendés con casos concretos y cada herramienta te dice para qué sirve y cuándo usarla.'],
   ['¿Con quién voy a compartir la comunidad?', 'Con profesionales de distintas áreas que trabajan con personas: abogados, psicólogos, coaches, docentes, gente de salud y de recursos humanos. Esa mezcla es parte del valor: ves cómo usa la misma herramienta alguien que trabaja distinto que vos.'],
   ['¿Me sirve también en lo personal?', 'Sí. Para usarlo con otros primero entendés tu propio tipo, y eso se nota en tus vínculos. Pero el foco de la Academia es aplicarlo en tu trabajo.'],
+  ['¿Reemplaza una terapia o mi formación profesional?', 'No. El Eneagrama es un mapa de observación que suma a lo que ya sabés hacer, siempre dentro del alcance y la ética de tu profesión. No reemplaza una terapia, un diagnóstico ni tu formación.'],
   ['¿Cuánto tiempo necesito?', 'Con media hora por semana avanzás. Las lecciones duran entre 8 y 15 minutos. Los vivos se anuncian en el calendario con el horario de tu país y quedan grabados.'],
   ['¿Qué diferencia hay con la Diplomatura?', 'La Academia te da las bases del Eneagrama y una comunidad para practicarlo, a tu ritmo y con colegas. La Diplomatura es la formación completa y en profundidad para trabajar como eneagramista, con práctica supervisada y diploma. Mucha gente empieza por acá.'],
   ['¿Qué pasa con el precio? ¿Puedo cancelar?', 'Las primeras 100 personas pagan USD 39 por mes y mantienen ese precio mientras sigan en la Academia. Después, el precio es USD 59. Es una suscripción sin permanencia y la cancelás cuando quieras.'],
   ['¿Cómo pago desde fuera de Argentina?', 'Escribinos por WhatsApp y te pasamos la forma de pago para tu país.'],
+];
+
+// Números reales de Cecilia. Se muestran fijos, sin contadores que arranquen en cero.
+const CIFRAS = [
+  { dato: '7 años', texto: 'trabajando con el Eneagrama' },
+  { dato: '+1.800', texto: 'personas acompañadas' },
 ];
 
 const retraso = (i: number, cada = 3) => ({ '--retraso': `${(i % cada) * 110}ms` }) as CSSProperties;
@@ -178,6 +192,33 @@ function Icono({ icono: I, oscuro = false }: { icono: typeof BookOpen; oscuro?: 
     <span className={`w-12 h-12 rounded-xl flex items-center justify-center ${oscuro ? 'bg-oro/15 text-oro-claro' : 'bg-oro-suave text-oro'}`}>
       <I className="w-5 h-5" />
     </span>
+  );
+}
+
+function TarjetaTestimonio({ t, style }: { t: Testimonio; style: CSSProperties }) {
+  const embed = t.tipo === 'video' && t.url ? urlEmbed(t.url) : null;
+  return (
+    <figure style={style} className="revelar tarjeta p-5 flex flex-col items-center text-center gap-4 overflow-hidden">
+      {t.tipo === 'video' && t.url && (
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-tinta">
+          {embed
+            ? <iframe src={embed} title={`Testimonio de ${t.nombre}`} className="absolute inset-0 w-full h-full" allow="encrypted-media; picture-in-picture" allowFullScreen />
+            : <video src={t.url} controls playsInline preload="metadata" className="absolute inset-0 w-full h-full object-cover" />}
+        </div>
+      )}
+      {t.tipo === 'audio' && t.url && (
+        <div className="w-full flex flex-col items-center gap-3 bg-oro-suave rounded-xl px-4 py-5">
+          <Mic className="w-6 h-6 text-oro" />
+          <audio src={t.url} controls preload="metadata" className="w-full" />
+        </div>
+      )}
+      {t.tipo === 'imagen' && t.url && <img src={t.url} alt={`Mensaje de ${t.nombre}`} loading="lazy" className="w-full rounded-xl border border-linea" />}
+      {t.texto && <blockquote className="text-gris leading-relaxed">"{t.texto}"</blockquote>}
+      <figcaption className="mt-auto">
+        <p className="font-bold">{t.nombre}</p>
+        <p className="text-sm text-gris">{t.detalle}</p>
+      </figcaption>
+    </figure>
   );
 }
 
@@ -456,18 +497,18 @@ export default function Landing() {
           <h2 className="text-3xl md:text-4xl font-extrabold">Cecilia B. Sánchez</h2>
           <p className="text-gris text-lg">Abogada, coach ontológica y eneagramista. Sabe por experiencia propia que en el trabajo no todo es técnica. Trabaja con el Eneagrama hace 7 años, creó el método Eneascoaching, acompañó a más de 1.800 personas y forma profesionales en su Diplomatura en Eneagrama.</p>
         </div>
+        <div className="revelar grid grid-cols-2 gap-4 w-full max-w-xl">
+          {CIFRAS.map(c => (
+            <div key={c.dato} className="flex flex-col items-center text-center gap-1">
+              <span className="font-display font-extrabold text-4xl md:text-5xl text-oro tabular-nums">{c.dato}</span>
+              <span className="text-gris text-[15px]">{c.texto}</span>
+            </div>
+          ))}
+        </div>
         <div className="flex flex-col items-center gap-8 w-full">
           <h3 className="revelar font-display font-extrabold text-2xl text-center">Lo que dicen quienes trabajaron con Cecilia</h3>
-          <div className="grid md:grid-cols-3 gap-4 w-full">
-            {TESTIMONIOS.map((x, i) => (
-              <figure key={x.nombre} style={retraso(i)} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-4">
-                <blockquote className="text-gris leading-relaxed">"{x.texto}"</blockquote>
-                <figcaption className="mt-auto">
-                  <p className="font-bold">{x.nombre}</p>
-                  <p className="text-sm text-gris">{x.programa}</p>
-                </figcaption>
-              </figure>
-            ))}
+          <div className="grid md:grid-cols-3 gap-4 w-full items-start">
+            {TESTIMONIOS.map((x, i) => <TarjetaTestimonio key={x.nombre + i} t={x} style={retraso(i)} />)}
           </div>
         </div>
       </section>
@@ -514,6 +555,10 @@ export default function Landing() {
               {abierta === i && <p className="px-6 pb-5 -mt-1 text-gris text-center">{r}</p>}
             </div>
           ))}
+        </div>
+        <div className="revelar flex flex-col items-center text-center gap-3 pt-2">
+          <p className="text-gris">¿Te quedó alguna duda? Hablá con nosotros antes de decidir.</p>
+          <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="btn btn-borde">Escribir por WhatsApp</a>
         </div>
       </section>
 
