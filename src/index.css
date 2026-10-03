@@ -54,3 +54,8 @@ html { scroll-behavior: smooth; }
   html { scroll-behavior: auto; }
   .animado .revelar { opacity: 1; transform: none; }
 }
+
+.btn-grande { font-size: 1.05rem; padding: 1rem 2.1rem; }
+.btn-whatsapp { background: #25D366; color: #fff; box-shadow: 0 8px 22px rgba(37, 211, 102, .25); }
+.btn-whatsapp:hover { background: #1fb959; box-shadow: 0 12px 28px rgba(37, 211, 102, .35); }
+@media (max-width: 640px) { .btn-grande { padding: .95rem 1.1rem; font-size: 1rem; } }
