@@ -10,7 +10,7 @@ import { useAuth } from '../lib/auth';
 import { usePrecio, SelectorMoneda, PRECIO_USD, PRECIO_LISTA_USD, CUPO_LANZAMIENTO } from '../lib/precio';
 
 // Reglas de esta página: todo centrado, sin etiquetas arriba de los títulos y un texto
-// neutro para mujeres y hombres. El foco es usar el Eneagrama en el trabajo, con clientes,
+// neutro para mujeres y hombres. El foco es usar el Eneagrama en el trabajo y en la vida: con clientes,
 // pacientes y equipos, para sumarle humanidad a la técnica. No hace falta conocerlo.
 
 const WHATSAPP = 'https://wa.me/5493515632496?text=' + encodeURIComponent('Hola Cecilia! Quiero saber más de la Academia.');
