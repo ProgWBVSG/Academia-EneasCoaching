@@ -6,3 +6,5 @@ dist
 
 # Videos pesados: no van al repositorio
 public/vsl/*.mp4
+
+.vercel
