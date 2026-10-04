@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import type { Curso, Evento, Leccion, Modulo, Perfil } from '../lib/tipos';
 import { Campo, Cargando, Error, Modal, Vacio } from '../components/ui';
 
-type Tab = 'miembros' | 'cursos' | 'eventos';
+type Tab = 'miembros' | 'pagos' | 'cursos' | 'eventos';
 
 // ── Miembros ────────────────────────────────────────────────────────
 function Miembros() {
@@ -31,7 +31,7 @@ function Miembros() {
           <button key={k} onClick={() => setFiltro(k)} className={`px-3.5 py-1.5 rounded-full text-sm border ${filtro === k ? 'bg-tinta text-white border-tinta' : 'bg-white border-linea text-gris'}`}>{t}</button>
         ))}
       </div>
-      <p className="text-sm text-gris">Quien paga con Mercado Pago se activa sola. Para pagos por otro medio, activala a mano acá.</p>
+      <p className="text-sm text-gris">Quien paga con Mercado Pago o desde el exterior se activa sola. Las transferencias se confirman en la pestaña Pagos.</p>
       <div className="tarjeta overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-gris border-b border-linea">
@@ -60,6 +60,82 @@ function Miembros() {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Pagos ───────────────────────────────────────────────────────────
+type Pago = {
+  id: string; metodo: 'mercadopago' | 'transferencia' | 'internacional'; monto: number; moneda: string; meses: number;
+  estado: 'pendiente' | 'confirmado' | 'rechazado'; referencia: string | null; creado: string; confirmado: string | null;
+  perfil: { nombre: string; email: string; vence: string | null } | null;
+};
+const METODO = { mercadopago: 'Mercado Pago', transferencia: 'Transferencia', internacional: 'Internacional' } as const;
+const dinero = (p: Pago) => `${p.moneda === 'ARS' ? '$' : p.moneda} ${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 }).format(p.monto)}`;
+
+function Pagos() {
+  const [lista, setLista] = useState<Pago[] | null>(null);
+  const [trabajando, setTrabajando] = useState('');
+  const [error, setError] = useState('');
+  const cargar = useCallback(() => api<Pago[]>('admin-pagos').then(setLista).catch(e => setError(e.message)), []);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const revisar = async (id: string, accion: 'confirmar' | 'rechazar') => {
+    setTrabajando(id); setError('');
+    try { await api('admin-pago', { method: 'PUT', body: { id, accion } }); await cargar(); }
+    catch (e: any) { setError(e.message); }
+    setTrabajando('');
+  };
+
+  if (!lista) return error ? <Error texto={error} /> : <Cargando />;
+  const pendientes = lista.filter(p => p.estado === 'pendiente');
+  const historial = lista.filter(p => p.estado !== 'pendiente');
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <h2 className="font-bold text-lg">Transferencias para confirmar ({pendientes.length})</h2>
+        <p className="text-sm text-gris">Revisá que el dinero haya entrado y confirmá. La persona queda activa por los meses que pagó. Mercado Pago y el pago internacional se activan solos.</p>
+        <Error texto={error} />
+        {pendientes.length === 0 ? <Vacio titulo="No hay transferencias esperando." /> : pendientes.map(p => (
+          <div key={p.id} className="tarjeta p-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold">{p.perfil?.nombre || 'Sin nombre'} <span className="text-gris font-normal text-sm">{p.perfil?.email}</span></p>
+              <p className="text-sm text-gris">{dinero(p)} · {p.meses} {p.meses === 1 ? 'mes' : 'meses'} · {new Date(p.creado).toLocaleString('es-AR')}{p.referencia ? ` · Operación ${p.referencia}` : ''}</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => revisar(p.id, 'confirmar')} disabled={!!trabajando} className="btn btn-oscuro !py-2 !px-4 text-sm">
+                {trabajando === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> Confirmar</>}
+              </button>
+              <button onClick={() => revisar(p.id, 'rechazar')} disabled={!!trabajando} className="btn btn-borde !py-2 !px-4 text-sm"><X className="w-4 h-4" /> Rechazar</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col gap-3">
+        <h2 className="font-bold text-lg">Últimos pagos</h2>
+        {historial.length === 0 ? <Vacio titulo="Todavía no hay pagos registrados." /> : (
+          <div className="tarjeta overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-gris border-b border-linea">
+                <th className="px-4 py-3 font-semibold">Persona</th><th className="px-4 py-3 font-semibold">Medio</th>
+                <th className="px-4 py-3 font-semibold text-right">Monto</th><th className="px-4 py-3 font-semibold">Estado</th><th className="px-4 py-3 font-semibold">Fecha</th>
+              </tr></thead>
+              <tbody>
+                {historial.map(p => (
+                  <tr key={p.id} className="border-b border-linea last:border-0">
+                    <td className="px-4 py-3">{p.perfil?.nombre}<p className="text-xs text-gris">{p.perfil?.email}</p></td>
+                    <td className="px-4 py-3">{METODO[p.metodo]}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{dinero(p)}</td>
+                    <td className="px-4 py-3">{p.estado === 'confirmado' ? 'Confirmado' : 'Rechazado'}</td>
+                    <td className="px-4 py-3 text-gris whitespace-nowrap">{new Date(p.creado).toLocaleDateString('es-AR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -291,12 +367,13 @@ export default function Admin() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold">Administración</h1>
         <div className="flex gap-1 bg-white border border-linea rounded-full p-1">
-          {([['miembros', 'Miembros'], ['cursos', 'Cursos'], ['eventos', 'Vivos']] as const).map(([k, t]) => (
+          {([['miembros', 'Miembros'], ['pagos', 'Pagos'], ['cursos', 'Cursos'], ['eventos', 'Vivos']] as const).map(([k, t]) => (
             <button key={k} onClick={() => setTab(k)} className={`px-4 py-1.5 rounded-full text-sm ${tab === k ? 'bg-tinta text-white' : 'text-gris'}`}>{t}</button>
           ))}
         </div>
       </div>
       {tab === 'miembros' && <Miembros />}
+      {tab === 'pagos' && <Pagos />}
       {tab === 'cursos' && <Cursos />}
       {tab === 'eventos' && <Eventos />}
     </div>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -50,7 +51,14 @@ export default function PerfilVista() {
         <button disabled={guardando} className="btn btn-oscuro self-start">{guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar cambios'}</button>
       </form>
       {perfil.estado === 'activa' && perfil.rol !== 'admin' && (
-        <p className="text-sm text-gris">Para cancelar la membresía, entrá a Mercado Pago, sección Suscripciones. Tu progreso queda guardado si volvés.</p>
+        <p className="text-sm text-gris">
+          {perfil.metodo_pago === 'transferencia'
+            ? `Pagás por transferencia${perfil.vence ? `: tu acceso está pago hasta el ${new Date(perfil.vence).toLocaleDateString('es-AR')}` : ''}. Si no renovás, se pausa solo y tu progreso queda guardado.`
+            : perfil.metodo_pago === 'internacional'
+              ? 'Para cancelar la membresía, usá el link de gestión que te llegó por mail con tu suscripción. Tu progreso queda guardado si volvés.'
+              : 'Para cancelar la membresía, entrá a Mercado Pago, sección Suscripciones. Tu progreso queda guardado si volvés.'}{' '}
+          <Link to="/app/membresia" className="underline underline-offset-4 hover:text-oro">Ver opciones de pago</Link>
+        </p>
       )}
     </div>
   );

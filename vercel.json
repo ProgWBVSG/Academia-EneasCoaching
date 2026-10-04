@@ -1,5 +1,14 @@
 {
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/academia?action=cron-precios-mp",
+      "schedule": "0 12 1 * *"
+    }
   ]
 }

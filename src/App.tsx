@@ -39,6 +39,7 @@ export default function App() {
             <Route path="ranking" element={<Ranking />} />
             <Route path="laboratorio" element={<Laboratorio />} />
             <Route path="equipos" element={<Equipos />} />
+            <Route path="membresia" element={null} />
             <Route path="perfil" element={<PerfilVista />} />
             <Route path="admin" element={<Admin />} />
           </Route>

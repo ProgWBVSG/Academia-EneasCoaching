@@ -19,6 +19,7 @@ function apiLocal(): Plugin {
         const vreq: any = Object.assign(req, {
           query: Object.fromEntries(url.searchParams),
           body: raw ? JSON.parse(raw) : {},
+          rawBody: raw,
         });
         const vres: any = Object.assign(res, {
           status(code: number) { res.statusCode = code; return vres; },

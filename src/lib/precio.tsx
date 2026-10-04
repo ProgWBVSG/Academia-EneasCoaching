@@ -56,10 +56,10 @@ export function usePrecio() {
   };
 
   const nota = moneda === 'ARS'
-    ? 'Se cobra en pesos con Mercado Pago, al dólar oficial del día.'
+    ? 'En Argentina pagás en pesos, al dólar oficial del día: con Mercado Pago o por transferencia.'
     : moneda === 'EUR'
-      ? 'Valor aproximado en euros según la cotización de hoy.'
-      : 'En Argentina se cobra en pesos con Mercado Pago.';
+      ? 'Valor aproximado en euros. Desde otros países pagás con tarjeta internacional o PayPal.'
+      : 'En Argentina pagás en pesos con Mercado Pago o transferencia. Desde otros países, con tarjeta internacional o PayPal.';
 
   return { moneda, elegir, fmt, nota, disponible: !!cotiz };
 }

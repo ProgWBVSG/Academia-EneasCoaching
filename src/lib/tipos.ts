@@ -4,6 +4,7 @@ export interface Perfil {
   id: string; email: string; nombre: string; profesion: string | null; pais: string | null; bio: string | null;
   rol: 'miembro' | 'admin'; estado: 'pendiente' | 'activa' | 'vencida'; puntos: number;
   onboarding: Record<string, boolean>; creado: string;
+  metodo_pago?: 'mercadopago' | 'transferencia' | 'internacional' | 'manual' | null; vence?: string | null; precio_usd?: number | null;
 }
 
 export interface Onboarding { perfil: boolean; presentacion: boolean; leccion: boolean; laboratorio: boolean; vivo: boolean }

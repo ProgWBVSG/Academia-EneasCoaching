@@ -3,6 +3,7 @@
 // de servicio desde acá; el navegador nunca habla directo con Supabase.
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import crypto from 'node:crypto';
 
 const env = (k) => (process.env[k] || '').replace(/^﻿/, '').trim();
 
@@ -67,6 +68,12 @@ async function usuarioDe(req) {
   const { data, error } = await sb.auth.getUser(token);
   if (error || !data?.user) return null;
   const perfil = await asegurarPerfil(data.user);
+  const gracia = 3 * 24 * 60 * 60 * 1000;
+  if (perfil?.estado === 'activa' && perfil.rol !== 'admin' && perfil.metodo_pago === 'transferencia'
+    && perfil.vence && new Date(perfil.vence).getTime() + gracia < Date.now()) {
+    const { data: vencido } = await sb.from('academia_perfiles').update({ estado: 'vencida' }).eq('id', perfil.id).select('*').single();
+    return vencido;
+  }
   return perfil;
 }
 
@@ -169,6 +176,88 @@ async function mp(path, opts = {}) {
   const data = await r.json().catch(() => ({}));
   if (!r.ok) { const e = new Error(data.message || 'Error de Mercado Pago'); e.status = 502; throw e; }
   return data;
+}
+
+// ── Pagos ─────────────────────────────────────────────────────────────
+// Argentina: Mercado Pago (débito automático en pesos) o transferencia (sin comisión, se confirma a mano).
+// Exterior: Lemon Squeezy, que cobra en dólares y se encarga de los impuestos de cada país.
+const CUPO_LANZAMIENTO = 100;
+const sumarMeses = (desde, meses) => { const d = new Date(desde); d.setMonth(d.getMonth() + meses); return d.toISOString(); };
+
+// Precio en dólares de cada miembro: quien entra entre las primeras 100 mantiene USD 39
+async function precioUsdDe(perfil) {
+  if (perfil?.precio_usd) return perfil.precio_usd;
+  const { count } = await sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('estado', 'activa').eq('rol', 'miembro');
+  return (count || 0) < CUPO_LANZAMIENTO ? 39 : 59;
+}
+
+// Pesos al dólar oficial del día, redondeados a la centena. Sin cotización, usa ACADEMIA_PRECIO_ARS.
+async function precioArs(usd) {
+  const { ars } = await cotizaciones();
+  if (ars) return Math.round((usd * ars) / 100) * 100;
+  return Number(env('ACADEMIA_PRECIO_ARS')) || null;
+}
+
+const checkoutInternacional = (usd) => env(`LS_CHECKOUT_URL_${usd}`) || env('LS_CHECKOUT_URL');
+
+function datosTransferencia() {
+  const d = { alias: env('TRANSF_ALIAS'), cbu: env('TRANSF_CBU'), titular: env('TRANSF_TITULAR'), banco: env('TRANSF_BANCO'), cuit: env('TRANSF_CUIT') };
+  return d.alias || d.cbu ? d : null;
+}
+
+async function leerCrudo(req) {
+  if (typeof req.rawBody === 'string') return req.rawBody;
+  const partes = [];
+  for await (const c of req) partes.push(typeof c === 'string' ? Buffer.from(c) : c);
+  return Buffer.concat(partes).toString('utf8');
+}
+
+// Webhook de Lemon Squeezy. Verifica la firma sobre el cuerpo crudo antes de tocar nada.
+async function lsWebhook(req, res) {
+  const crudo = await leerCrudo(req);
+  const secreto = env('LS_WEBHOOK_SECRET');
+  const firma = String(req.headers['x-signature'] || '');
+  const esperada = secreto ? crypto.createHmac('sha256', secreto).update(crudo).digest('hex') : '';
+  if (!secreto || firma.length !== esperada.length || !crypto.timingSafeEqual(Buffer.from(firma), Buffer.from(esperada))) {
+    return res.status(401).json({ error: 'Firma inválida' });
+  }
+  const ev = JSON.parse(crudo || '{}');
+  const evento = ev?.meta?.event_name || '';
+  const uid = ev?.meta?.custom_data?.user_id;
+  const a = ev?.data?.attributes || {};
+  if (!uid) return res.status(200).json({ ok: true });
+
+  if (evento === 'subscription_payment_success') {
+    await sb.from('academia_pagos').insert({
+      usuario_id: uid, metodo: 'internacional', monto: (a.total || 0) / 100, moneda: String(a.currency || 'USD').toUpperCase(),
+      estado: 'confirmado', referencia: String(ev.data?.id || ''), confirmado: new Date().toISOString(),
+    });
+  } else if (evento.startsWith('subscription_')) {
+    const cambios = { metodo_pago: 'internacional', ls_subscription_id: String(ev.data?.id || '') };
+    if (['active', 'on_trial', 'past_due'].includes(a.status)) { cambios.estado = 'activa'; cambios.vence = a.renews_at || null; }
+    else if (a.status === 'cancelled') { cambios.estado = 'activa'; cambios.vence = a.ends_at || null; } // sigue hasta el fin del período pago
+    else if (['expired', 'unpaid', 'paused'].includes(a.status)) cambios.estado = 'vencida';
+    await sb.from('academia_perfiles').update(cambios).eq('id', uid);
+  }
+  return res.status(200).json({ ok: true });
+}
+
+// Una vez por mes (cron de Vercel): ajusta el monto en pesos de las suscripciones de Mercado Pago
+// al dólar oficial, solo si cambió más de 3%.
+async function ajustarPreciosMp() {
+  const { data } = await sb.from('academia_perfiles').select('id,precio_usd,mp_preapproval_id')
+    .eq('estado', 'activa').eq('metodo_pago', 'mercadopago').not('mp_preapproval_id', 'is', null);
+  let ajustadas = 0;
+  for (const p of data || []) {
+    const nuevo = await precioArs(p.precio_usd || 39);
+    if (!nuevo) continue;
+    const pre = await mp(`/preapproval/${p.mp_preapproval_id}`).catch(() => null);
+    const actual = Number(pre?.auto_recurring?.transaction_amount) || 0;
+    if (!pre || pre.status !== 'authorized' || !actual || Math.abs(nuevo - actual) / actual <= 0.03) continue;
+    await mp(`/preapproval/${p.mp_preapproval_id}`, { method: 'PUT', body: JSON.stringify({ auto_recurring: { transaction_amount: nuevo, currency_id: 'ARS' } }) }).catch(() => null);
+    ajustadas += 1;
+  }
+  return { revisadas: (data || []).length, ajustadas };
 }
 
 // ── Contenido inicial ─────────────────────────────────────────────────
@@ -293,6 +382,10 @@ async function cotizaciones() {
 // ── Handler ───────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   const action = req.query.action;
+  // Lemon Squeezy firma el cuerpo crudo: se atiende antes de usar req.body
+  if (action === 'ls-webhook' && req.method === 'POST') {
+    try { return await lsWebhook(req, res); } catch (e) { console.error(e); return res.status(500).json({ error: 'Error del webhook' }); }
+  }
   const body = req.body || {};
   const m = req.method;
 
@@ -349,9 +442,15 @@ export default async function handler(req, res) {
       const uid = pre.external_reference;
       if (uid) {
         const estado = pre.status === 'authorized' ? 'activa' : (['cancelled', 'paused'].includes(pre.status) ? 'vencida' : null);
-        if (estado) await sb.from('academia_perfiles').update({ estado, mp_preapproval_id: pre.id }).eq('id', uid);
+        if (estado) await sb.from('academia_perfiles').update({ estado, mp_preapproval_id: pre.id, metodo_pago: 'mercadopago', vence: null }).eq('id', uid);
       }
       return res.status(200).json({ ok: true });
+    }
+
+    if (action === 'cron-precios-mp' && m === 'GET') {
+      if (!env('CRON_SECRET') || req.headers.authorization !== `Bearer ${env('CRON_SECRET')}`) return res.status(401).json({ error: 'No autorizado' });
+      if (!env('MP_ACCESS_TOKEN')) return res.status(200).json({ revisadas: 0, ajustadas: 0 });
+      return res.status(200).json(await ajustarPreciosMp());
     }
 
     if (action === 'publico-info' && m === 'GET') {
@@ -394,17 +493,62 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    if (action === 'pago-opciones' && m === 'GET') {
+      const usd = await precioUsdDe(yo);
+      const ars = await precioArs(usd);
+      const { data: pendiente } = await sb.from('academia_pagos').select('id,meses,monto,moneda,creado')
+        .eq('usuario_id', yo.id).eq('estado', 'pendiente').order('creado', { ascending: false }).limit(1);
+      return res.status(200).json({
+        usd, ars,
+        mp: Boolean(env('MP_ACCESS_TOKEN') && ars),
+        internacional: Boolean(checkoutInternacional(usd)),
+        transferencia: datosTransferencia(),
+        metodo: yo.metodo_pago || null, vence: yo.vence || null,
+        pendiente: pendiente?.[0] || null,
+      });
+    }
+
+    if (action === 'transferencia-aviso' && m === 'POST') {
+      if (!datosTransferencia()) return res.status(503).json({ error: 'La transferencia todavía no está habilitada. Escribinos por WhatsApp.' });
+      const usd = await precioUsdDe(yo);
+      const ars = await precioArs(usd);
+      if (!ars) return res.status(503).json({ error: 'No pudimos calcular el precio en pesos. Probá en unos minutos.' });
+      const meses = [1, 3].includes(Number(body.meses)) ? Number(body.meses) : 1;
+      await sb.from('academia_pagos').delete().eq('usuario_id', yo.id).eq('estado', 'pendiente').eq('metodo', 'transferencia');
+      await sb.from('academia_pagos').insert({
+        usuario_id: yo.id, metodo: 'transferencia', monto: ars * meses, moneda: 'ARS', meses,
+        referencia: String(body.referencia || '').trim().slice(0, 80) || null,
+      });
+      if (!yo.precio_usd) await sb.from('academia_perfiles').update({ precio_usd: usd }).eq('id', yo.id);
+      return res.status(200).json({ ok: true });
+    }
+
+    if (action === 'checkout-internacional' && m === 'POST') {
+      const usd = await precioUsdDe(yo);
+      const base = checkoutInternacional(usd);
+      if (!base) return res.status(503).json({ error: 'El pago internacional todavía no está activado. Escribinos por WhatsApp.' });
+      const url = new URL(base);
+      url.searchParams.set('checkout[email]', yo.email);
+      url.searchParams.set('checkout[name]', yo.nombre);
+      url.searchParams.set('checkout[custom][user_id]', yo.id);
+      if (!yo.precio_usd) await sb.from('academia_perfiles').update({ precio_usd: usd }).eq('id', yo.id);
+      return res.status(200).json({ url: url.toString() });
+    }
+
     if (action === 'suscribirme' && m === 'POST') {
-      if (!env('MP_ACCESS_TOKEN') || !env('ACADEMIA_PRECIO_ARS')) {
+      const usd = await precioUsdDe(yo);
+      const ars = await precioArs(usd);
+      if (!env('MP_ACCESS_TOKEN') || !ars) {
         return res.status(503).json({ error: 'El pago online todavía no está activado. Escribinos por WhatsApp y te damos acceso.' });
       }
+      if (!yo.precio_usd) await sb.from('academia_perfiles').update({ precio_usd: usd }).eq('id', yo.id);
       const pre = await mp('/preapproval', {
         method: 'POST',
         body: JSON.stringify({
           reason: 'Academia Eneascoaching · membresía mensual',
           external_reference: yo.id,
           payer_email: yo.email,
-          auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: Number(env('ACADEMIA_PRECIO_ARS')), currency_id: 'ARS' },
+          auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: ars, currency_id: 'ARS' },
           back_url: `${env('ACADEMIA_URL')}/app?pago=ok`,
           status: 'pending',
         }),
@@ -658,6 +802,27 @@ Máximo 280 palabras.`,
     if (action === 'admin-miembros' && m === 'GET') {
       const { data } = await sb.from('academia_perfiles').select('*').order('creado', { ascending: false });
       return res.status(200).json(data || []);
+    }
+
+    if (action === 'admin-pagos' && m === 'GET') {
+      const { data } = await sb.from('academia_pagos').select('*, perfil:academia_perfiles(nombre,email,vence)')
+        .order('creado', { ascending: false }).limit(60);
+      return res.status(200).json(data || []);
+    }
+
+    if (action === 'admin-pago' && m === 'PUT') {
+      const { data: pago } = await sb.from('academia_pagos').select('*').eq('id', body.id).maybeSingle();
+      if (!pago || pago.estado !== 'pendiente') return res.status(400).json({ error: 'Ese pago ya fue revisado.' });
+      if (body.accion === 'rechazar') {
+        await sb.from('academia_pagos').update({ estado: 'rechazado', confirmado: new Date().toISOString() }).eq('id', pago.id);
+        return res.status(200).json({ ok: true });
+      }
+      const { data: perfil } = await sb.from('academia_perfiles').select('vence').eq('id', pago.usuario_id).single();
+      const desde = perfil?.vence && new Date(perfil.vence) > new Date() ? perfil.vence : new Date().toISOString();
+      const vence = sumarMeses(desde, pago.meses);
+      await sb.from('academia_perfiles').update({ estado: 'activa', metodo_pago: 'transferencia', vence }).eq('id', pago.usuario_id);
+      await sb.from('academia_pagos').update({ estado: 'confirmado', confirmado: new Date().toISOString() }).eq('id', pago.id);
+      return res.status(200).json({ ok: true, vence });
     }
 
     if (action === 'admin-miembro' && m === 'PUT') {

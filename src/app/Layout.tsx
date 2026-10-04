@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader2, LogOut, Settings, User, Check, Lock } from 'lucide-react';
+import { LogOut, Settings, User } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { api } from '../lib/api';
-import { AvatarNivel, Error } from '../components/ui';
+import { AvatarNivel } from '../components/ui';
+import Membresia from './Membresia';
 import Eneagrama from '../components/Eneagrama';
 
 const TABS = [
@@ -15,49 +15,6 @@ const TABS = [
   { to: '/app/ranking', label: 'Ranking' },
   { to: '/app/equipos', label: 'Equipos' },
 ];
-
-const WHATSAPP = 'https://wa.me/5493515632496?text=' + encodeURIComponent('Hola Cecilia! Me registré en la Academia y quiero activar mi membresía.');
-
-function Membresia() {
-  const { perfil } = useAuth();
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState('');
-
-  const suscribirme = async () => {
-    setCargando(true); setError('');
-    try {
-      const { url } = await api('suscribirme', { method: 'POST' });
-      window.location.href = url;
-    } catch (e: any) { setError(e.message); setCargando(false); }
-  };
-
-  return (
-    <div className="max-w-xl mx-auto py-10 flex flex-col items-center text-center gap-5">
-      <span className="w-14 h-14 rounded-2xl bg-oro-suave text-oro flex items-center justify-center"><Lock className="w-6 h-6" /></span>
-      <h1 className="text-2xl font-extrabold">
-        {perfil?.estado === 'vencida' ? 'Tu membresía está pausada' : `Hola ${perfil?.nombre.split(' ')[0]}, falta un paso`}
-      </h1>
-      <p className="text-gris">
-        {perfil?.estado === 'vencida'
-          ? 'Reactivala para volver a entrar a los cursos, los vivos y el laboratorio. Tu progreso y tus puntos quedan guardados.'
-          : 'Tu cuenta está creada. Activá la membresía para entrar a los cursos, los vivos, la comunidad y el laboratorio.'}
-      </p>
-      <div className="tarjeta p-6 w-full flex flex-col gap-4 text-left">
-        <p className="flex items-baseline gap-2"><span className="font-display font-extrabold text-4xl">USD 39</span><span className="text-gris">por mes</span></p>
-        <ul className="flex flex-col gap-2 text-sm">
-          {['Todas las rutas de cursos', 'Clase en vivo y supervisión de casos cada mes', 'Laboratorio de práctica con IA', 'Comunidad de colegas'].map(t => (
-            <li key={t} className="flex gap-2"><Check className="w-4 h-4 text-oro shrink-0 mt-0.5" />{t}</li>
-          ))}
-        </ul>
-        <Error texto={error} />
-        <button onClick={suscribirme} disabled={cargando} className="btn btn-oro w-full !py-3">
-          {cargando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Activar con Mercado Pago'}
-        </button>
-        <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="btn btn-borde w-full">Pagar desde otro país o por WhatsApp</a>
-      </div>
-    </div>
-  );
-}
 
 export default function Layout() {
   const { perfil, nivel, salir, recargar } = useAuth();
@@ -83,6 +40,10 @@ export default function Layout() {
   if (!perfil || !nivel) return null;
   const activa = perfil.estado === 'activa' || perfil.rol === 'admin';
   const enPerfil = loc.pathname.startsWith('/app/perfil');
+  const enMembresia = loc.pathname.startsWith('/app/membresia');
+  // Aviso cuando el acceso pagado por transferencia vence en los próximos 5 días
+  const dias = perfil.vence ? Math.ceil((new Date(perfil.vence).getTime() - Date.now()) / 86400000) : null;
+  const porVencer = activa && perfil.rol !== 'admin' && perfil.metodo_pago === 'transferencia' && dias !== null && dias <= 5;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -124,8 +85,17 @@ export default function Layout() {
         )}
       </header>
 
+      {porVencer && !enMembresia && (
+        <div className="bg-oro-suave border-b border-linea">
+          <div className="max-w-6xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-center gap-3 text-sm text-center">
+            <span>Tu acceso vence {dias! <= 0 ? 'hoy' : `en ${dias} ${dias === 1 ? 'día' : 'días'}`}. Renovalo para no perder la continuidad.</span>
+            <Link to="/app/membresia" className="btn btn-oscuro !py-1.5 !px-4 text-sm">Renovar</Link>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
-        {activa || enPerfil ? <Outlet /> : <Membresia />}
+        {enMembresia ? <Membresia renovar={activa} /> : activa || enPerfil ? <Outlet /> : <Membresia />}
       </main>
     </div>
   );

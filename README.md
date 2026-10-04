@@ -11,7 +11,7 @@ Membresía de USD 39/mes de Cecilia B. Sánchez para profesionales que usan el E
 
 ## Puesta en marcha
 
-1. En Supabase, SQL Editor: correr `supabase/schema.sql`.
+1. En Supabase, SQL Editor: correr `supabase/schema.sql` y después `supabase/pagos.sql`.
 2. Completar `.env.local` (ver abajo) y correr `npm install` y `npm run dev`. Abre en http://localhost:5240.
 3. Registrarse con un email que esté en `ACADEMIA_ADMIN_EMAILS`: esa cuenta queda como administradora y activa.
 4. En Administración > Cursos, "Cargar contenido inicial" crea las cinco rutas con lecciones de ejemplo, dos vivos y un post de bienvenida.
@@ -26,6 +26,10 @@ Membresía de USD 39/mes de Cecilia B. Sánchez para profesionales que usan el E
 | `ACADEMIA_URL` | URL pública de la academia (para volver de Mercado Pago y del mail de contraseña) |
 | `MP_ACCESS_TOKEN` | Token de Mercado Pago. Sin él, el botón de pago deriva a WhatsApp |
 | `ACADEMIA_PRECIO_ARS` | Precio mensual en pesos para la suscripción |
+| `TRANSF_ALIAS`, `TRANSF_CBU`, `TRANSF_TITULAR`, `TRANSF_BANCO`, `TRANSF_CUIT` | Datos para pagar por transferencia. Con alias o CBU cargado, aparece la opción |
+| `LS_CHECKOUT_URL_39`, `LS_CHECKOUT_URL_59` (o `LS_CHECKOUT_URL`) | Links de checkout de Lemon Squeezy para el pago internacional, uno por precio |
+| `LS_WEBHOOK_SECRET` | Clave para verificar los avisos de Lemon Squeezy (webhook en `/api/academia?action=ls-webhook`) |
+| `CRON_SECRET` | Clave del cron mensual de Vercel que ajusta las suscripciones de Mercado Pago al dólar oficial |
 | `ANTHROPIC_API_KEY` | Activa el laboratorio de práctica |
 | `ACADEMIA_IA_MODEL` | Opcional. Por defecto `claude-opus-5` |
 | `VITE_VSL_URL` | Link del video de Cecilia en la landing (YouTube, Vimeo o .mp4). En local: `/vsl/vsl-cecilia.mp4` (comprimido a 1080p, no se sube al repositorio). Sin él, se ve su foto con el aviso "se publica muy pronto" |
