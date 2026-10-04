@@ -15,6 +15,7 @@ import Laboratorio from './app/Laboratorio';
 import Equipos from './app/Equipos';
 import PerfilVista from './app/Perfil';
 import Admin from './app/Admin';
+import { Terminos, Privacidad, Arrepentimiento } from './pages/Legal';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { cargando, perfil } = useAuth();
@@ -32,6 +33,9 @@ export default function App() {
           <Route path="/entrar" element={<Entrar modo="entrar" />} />
           <Route path="/registro" element={<Entrar modo="registro" />} />
           <Route path="/restablecer" element={<Restablecer />} />
+          <Route path="/terminos" element={<Terminos />} />
+          <Route path="/privacidad" element={<Privacidad />} />
+          <Route path="/arrepentimiento" element={<Arrepentimiento />} />
           <Route path="/app" element={<Protegida><Layout /></Protegida>}>
             <Route index element={<Comunidad />} />
             <Route path="aula" element={<Aula />} />

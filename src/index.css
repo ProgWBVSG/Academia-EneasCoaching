@@ -72,3 +72,13 @@ html { scroll-behavior: smooth; }
 @keyframes latido { 0%, 100% { box-shadow: 0 0 0 0 rgb(176 138 69 / .55); } 50% { box-shadow: 0 0 0 12px rgb(176 138 69 / 0); } }
 .btn-latido { animation: latido 1.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .btn-latido { animation: none; } }
+
+/* Texto que trae el HTML antes de que cargue la web (para buscadores). React lo reemplaza enseguida. */
+.previo { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem; text-align: center; line-height: 1.6; }
+.previo h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 800; line-height: 1.15; margin-bottom: 1rem; }
+.previo h2 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; margin: 2rem 0 .5rem; }
+.previo h3 { font-weight: 600; margin-top: 1rem; }
+.previo p, .previo li { color: var(--color-gris); }
+.previo a { color: var(--color-oro); font-weight: 600; }
+.previo ul { list-style: none; padding: 0; }
+.previo footer { margin-top: 3rem; font-size: .875rem; }

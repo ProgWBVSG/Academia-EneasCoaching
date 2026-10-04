@@ -8,6 +8,8 @@ import {
 import Eneagrama from '../components/Eneagrama';
 import { useAuth } from '../lib/auth';
 import { wa } from '../lib/contacto';
+import { FAQ, INCLUYE_PRECIO } from '../contenido/publico';
+import { PieLegal, useSeo } from './Legal';
 import { usePrecio, useCuentaRegresiva, SelectorMoneda, PRECIO_USD, PRECIO_LISTA_USD, CUPO_LANZAMIENTO, CIERRE_LANZAMIENTO } from '../lib/precio';
 
 // Reglas de esta página: todo centrado, sin etiquetas arriba de los títulos y un texto
@@ -180,28 +182,6 @@ const TESTIMONIOS: Testimonio[] = [
   { tipo: 'texto', texto: 'Cecilia tiene una calidez única. Su método me ayudó a entender por qué repetía los mismos patrones y cómo liberarme de ellos con amor y consciencia.', nombre: 'María G.', detalle: 'Mentoría' },
   { tipo: 'texto', texto: 'La diplomatura cambió mi forma de ver el mundo. No solo aprendí teoría, sino que viví una transformación personal profunda que ahora aplico en mi profesión.', nombre: 'Gemma J. Fares', detalle: 'Diplomatura' },
   { tipo: 'texto', texto: 'Agradecida a la vida por haberte encontrado este año. Gracias por enseñarme tantas cosas.', nombre: 'Majo E.', detalle: 'Mentoría' },
-];
-
-const INCLUYE_PRECIO = [
-  'Cursos grabados con las bases del Eneagrama',
-  'Dos clases en vivo por mes con Cecilia',
-  'Networking con profesionales de distintas áreas',
-  'Fichas de cada tipo para tu trabajo',
-  'Test de tu tipo y laboratorio de práctica',
-];
-
-const FAQ = [
-  ['¿Necesito saber algo de Eneagrama?', 'No. Si nunca lo estudiaste, arrancás haciendo tu test y las primeras clases explican todo desde cero, con ejemplos de distintos trabajos.'],
-  ['Ya conozco el Eneagrama. ¿Me sirve?', 'Sí. Los cursos son las bases y podés repasarlas cuando quieras, pero lo que más vas a aprovechar es la comunidad: los casos en vivo con Cecilia, la práctica en el laboratorio y el networking con colegas que usan la misma herramienta. Si buscás profundidad, la Diplomatura es el camino.'],
-  ['Mi profesión no es psicología ni coaching. ¿Me sirve?', 'Sí. Está pensada para cualquier trabajo con personas del otro lado: derecho, educación, ventas, recursos humanos, equipos. Hay ejemplos y casos de cada área.'],
-  ['¿El Eneagrama es algo esotérico?', 'Es un modelo de personalidad que describe qué motiva a cada persona y cómo reacciona. Se usa en empresas, en psicoterapia y en coaching. Acá lo aprendés con casos concretos y cada herramienta te dice para qué sirve y cuándo usarla.'],
-  ['¿Con quién voy a compartir la comunidad?', 'Con profesionales de distintas áreas que trabajan con personas: abogados, psicólogos, coaches, docentes, gente de ventas y de recursos humanos. Esa mezcla es parte del valor: ves cómo usa la misma herramienta alguien que trabaja distinto que vos.'],
-  ['¿Me sirve también en lo personal?', 'Sí. La Academia es para tu trabajo y para tu vida. Primero entendés tu propio tipo, y eso cambia cómo te relacionás con tu pareja, tu familia y la gente que querés, no solo con tus clientes.'],
-  ['¿Reemplaza una terapia o mi formación profesional?', 'No. El Eneagrama es un mapa de observación que suma a lo que ya sabés hacer, siempre dentro del alcance y la ética de tu profesión. No reemplaza una terapia, un diagnóstico ni tu formación.'],
-  ['¿Cuánto tiempo necesito?', 'Con media hora por semana avanzás. Las lecciones duran entre 8 y 15 minutos. Los vivos se anuncian en el calendario con el horario de tu país y quedan grabados.'],
-  ['¿Qué diferencia hay con la Diplomatura?', 'La Academia te da las bases del Eneagrama y una comunidad para practicarlo, a tu ritmo y con colegas. La Diplomatura es la formación completa y en profundidad para trabajar como eneagramista, con práctica supervisada y diploma. Mucha gente empieza por acá.'],
-  ['¿Qué pasa con el precio? ¿Puedo cancelar?', 'Las primeras 100 personas pagan USD 39 por mes y mantienen ese precio mientras sigan en la Academia. Después, el precio es USD 59. Es una suscripción sin permanencia y la cancelás cuando quieras.'],
-  ['¿Cómo pago desde fuera de Argentina?', 'Escribinos por WhatsApp y te pasamos la forma de pago para tu país.'],
 ];
 
 // Números reales de Cecilia. Se muestran fijos, sin contadores que arranquen en cero.
@@ -439,6 +419,7 @@ function VideoCecilia({ alReproducir }: { alReproducir: () => void }) {
 
 export default function Landing() {
   const { perfil } = useAuth();
+  useSeo();
   const [info, setInfo] = useState<{ miembros: number; proximo: { titulo: string; inicio: string } | null; cupo?: number; cierre?: string } | null>(null);
   const [abierta, setAbierta] = useState<number | null>(null);
   const [todasLasPreguntas, setTodasLasPreguntas] = useState(false);
@@ -813,12 +794,7 @@ export default function Landing() {
         <ArrowUp className="w-5 h-5" />
       </button>
 
-      <footer className="border-t border-linea">
-        <div className="max-w-6xl mx-auto px-5 py-8 flex flex-col items-center gap-2 text-sm text-gris text-center">
-          <span>Academia Eneascoaching · Cecilia B. Sánchez</span>
-          <a href={WEB} className="hover:text-oro">cecimentorcoach.com</a>
-        </div>
-      </footer>
+      <PieLegal />
     </div>
   );
 }

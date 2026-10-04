@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import Eneagrama from '../components/Eneagrama';
 import { Campo, Error } from '../components/ui';
+import { useSeo } from './Legal';
 import SelectorPais from '../components/SelectorPais';
 
 const PROFESIONES = ['Ninguna, es para mí', 'Psicóloga/o', 'Coach', 'Terapeuta', 'Abogada/o', 'RRHH', 'Líder de equipo', 'Docente', 'Psicopedagoga/o', 'Ventas o atención al cliente', 'Otra profesión'];
@@ -16,6 +17,8 @@ export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
+  const [acepta, setAcepta] = useState(false);
+  useSeo();
 
   if (perfil) return <Navigate to="/app" replace />;
 
@@ -25,7 +28,7 @@ export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
     e.preventDefault();
     setEnviando(true); setError(''); setAviso('');
     try {
-      const { sesion } = await api(modo, { method: 'POST', body: f });
+      const { sesion } = await api(modo, { method: 'POST', body: modo === 'registro' ? { ...f, acepta } : f });
       await iniciar(sesion);
       nav('/app');
     } catch (err: any) {
@@ -83,6 +86,12 @@ export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
             <input id="password" type="password" className="campo" value={f.password} onChange={set('password')} autoComplete={modo === 'registro' ? 'new-password' : 'current-password'} required minLength={8} />
           </Campo>
 
+          {modo === 'registro' && (
+            <label className="flex items-start gap-2.5 text-sm text-gris">
+              <input id="acepta" type="checkbox" className="mt-1 accent-[#B08A45] w-4 h-4 shrink-0" checked={acepta} onChange={e => setAcepta(e.target.checked)} required />
+              <span>Leí y acepto los <Link to="/terminos" target="_blank" className="text-oro font-semibold">Términos y condiciones</Link> y la <Link to="/privacidad" target="_blank" className="text-oro font-semibold">Política de privacidad</Link>.</span>
+            </label>
+          )}
           <Error texto={error} />
           {aviso && <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">{aviso}</p>}
 

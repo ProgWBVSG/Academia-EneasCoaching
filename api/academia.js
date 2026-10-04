@@ -619,11 +619,13 @@ export default async function handler(req, res) {
       if (!/\S+@\S+\.\S+/.test(email)) return res.status(400).json({ error: 'Ingresá un email válido.' });
       if (password.length < 8) return res.status(400).json({ error: 'La contraseña tiene que tener al menos 8 caracteres.' });
       if (!nombre) return res.status(400).json({ error: 'Ingresá tu nombre.' });
+      if (body.acepta !== true) return res.status(400).json({ error: 'Para crear tu cuenta tenés que aceptar los Términos y la Política de privacidad.' });
       if (await intentosEn('registro', `ip:${ipDe(req)}`, 60) >= 10) return demasiados(res);
       await anotarIntento('registro', `ip:${ipDe(req)}`);
 
       const { data: creado, error } = await sb.auth.admin.createUser({
-        email, password, email_confirm: true, user_metadata: { nombre },
+        // Queda guardado cuándo aceptó los términos y qué versión (la fecha de vigencia de los textos)
+        email, password, email_confirm: true, user_metadata: { nombre, terminos_aceptados: new Date().toISOString(), terminos_version: '2026-10-04' },
       });
       if (error) {
         const yaExiste = /already|registered|exists/i.test(error.message);
@@ -721,6 +723,43 @@ export default async function handler(req, res) {
       if (!env('CRON_SECRET') || req.headers.authorization !== `Bearer ${env('CRON_SECRET')}`) return res.status(401).json({ error: 'No autorizado' });
       if (!env('MP_ACCESS_TOKEN')) return res.status(200).json({ revisadas: 0, ajustadas: 0 });
       return res.status(200).json(await ajustarPreciosMp());
+    }
+
+    // Botón de arrepentimiento, botón de baja y pedidos sobre datos personales (Ley 24.240, Res. 424/2020 y Ley 25.326).
+    // No exige ingresar: se guarda en el registro de actividad, se avisa a la administración y se devuelve un código de trámite.
+    if (action === 'solicitud' && m === 'POST') {
+      const TIPOS = { arrepentimiento: 'Arrepentimiento de la compra', baja: 'Baja de la membresía', datos: 'Pedido sobre datos personales' };
+      const tipo = String(body.tipo || '');
+      const nombre = String(body.nombre || '').trim().slice(0, 120);
+      const email = String(body.email || '').trim().toLowerCase().slice(0, 160);
+      const detalle = String(body.detalle || '').trim().slice(0, 1500);
+      if (!TIPOS[tipo]) return res.status(400).json({ error: 'Elegí qué querés pedir.' });
+      if (!nombre || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Completá tu nombre y un email válido.' });
+      if (await intentosEn('solicitud', `ip:${ipDe(req)}`, 60) >= 5) return demasiados(res);
+      await anotarIntento('solicitud', `ip:${ipDe(req)}`);
+      const codigo = 'SL-' + Array.from(crypto.randomBytes(6), b => ALFABETO[b % ALFABETO.length]).join('');
+      const { data: perfil } = await sb.from('academia_perfiles').select('id,email,estado,vence,metodo_pago').eq('email', email).maybeSingle();
+      await auditar(req, { id: perfil?.id, email }, `solicitud_${tipo}`, codigo, { nombre, detalle, cuenta: perfil ? { estado: perfil.estado, vence: perfil.vence, metodo_pago: perfil.metodo_pago } : null });
+      const admins = (env('MAIL_ADMIN') || env('ACADEMIA_ADMIN_EMAILS')).split(',').map(x => x.trim()).filter(Boolean);
+      await Promise.all([
+        enviarMail({
+          to: email, asunto: `Recibimos tu pedido (${codigo})`, titulo: `Recibimos tu pedido, ${nombre.split(/\s+/)[0]}`,
+          parrafos: [
+            `Tipo de pedido: ${TIPOS[tipo]}. Tu código de trámite es ${codigo}.`,
+            'Lo respondemos dentro de las 24 horas hábiles a este mismo email. Si necesitás algo antes, escribinos por WhatsApp con tu código.',
+          ],
+          boton: { texto: 'Escribir por WhatsApp', url: urlWhatsapp(`Hola! Hice un pedido en la Academia (${TIPOS[tipo]}). Mi código es ${codigo}.`) },
+        }),
+        ...admins.map(to => enviarMail({
+          to, asunto: `Pedido nuevo: ${TIPOS[tipo]} (${codigo})`, titulo: `${TIPOS[tipo]}`,
+          parrafos: [
+            `Código: ${codigo}\nNombre: ${nombre}\nEmail: ${email}\nCuenta: ${perfil ? `${perfil.estado}${perfil.vence ? `, vence ${new Date(perfil.vence).toLocaleDateString('es-AR')}` : ''}${perfil.metodo_pago ? `, paga por ${perfil.metodo_pago}` : ''}` : 'no hay cuenta con ese email'}`,
+            detalle ? `Detalle: ${detalle}` : 'Sin detalle.',
+            'Hay que responderlo dentro de las 24 horas hábiles. Queda guardado en el registro de actividad del panel.',
+          ],
+        })),
+      ]);
+      return res.status(200).json({ ok: true, codigo, whatsapp: urlWhatsapp(`Hola! Hice un pedido en la Academia (${TIPOS[tipo]}). Mi código es ${codigo}. Nombre: ${nombre}. Email: ${email}.`) });
     }
 
     if (action === 'publico-info' && m === 'GET') {
