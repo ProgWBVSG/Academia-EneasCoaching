@@ -254,33 +254,57 @@ function VideoPropio() {
   );
 }
 
-// En celular las tarjetas se deslizan de costado, una por vez, con puntos para saber dónde estás.
+// En celular las tarjetas se deslizan de costado, una por vez, con puntos para saber dónde estás,
+// y avanzan solas cada 7 segundos.
 // Desde tablet se ven en grilla. "grilla" trae las columnas (por ejemplo "md:grid-cols-3").
 function Carrusel({ children, grilla, oscuro = false }: { children: ReactNode; grilla: string; oscuro?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [actual, setActual] = useState(0);
+  const actualRef = useRef(0);
+  const visible = useRef(false);
+  const pausadoHasta = useRef(0);
   const items = Children.toArray(children);
   const alDeslizar = () => {
     const el = ref.current;
     const primero = el?.firstElementChild as HTMLElement | null;
     if (!el || !primero) return;
-    setActual(Math.min(items.length - 1, Math.round(el.scrollLeft / (primero.offsetWidth + 16))));
+    const i = Math.min(items.length - 1, Math.round(el.scrollLeft / (primero.offsetWidth + 16)));
+    actualRef.current = i;
+    setActual(i);
   };
   const ir = (i: number) => {
     const el = ref.current;
     const hijo = el?.children[i] as HTMLElement | undefined;
     if (el && hijo) el.scrollTo({ left: hijo.offsetLeft - (el.clientWidth - hijo.offsetWidth) / 2, behavior: 'smooth' });
   };
+  // Si la persona lo toca, el carrusel se queda quieto un rato para que pueda leer
+  const pausar = () => { pausadoHasta.current = Date.now() + 12000; };
+
+  // Avanza solo cada 7 segundos, únicamente en celular (cuando hay carrusel) y si está en pantalla
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || items.length < 2) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const io = new IntersectionObserver(([e]) => { visible.current = e.isIntersecting; }, { threshold: 0.5 });
+    io.observe(el);
+    const id = setInterval(() => {
+      if (!visible.current || document.hidden || Date.now() < pausadoHasta.current) return;
+      if (el.scrollWidth <= el.clientWidth + 1) return; // en computadora es grilla: no se mueve
+      ir((actualRef.current + 1) % items.length);
+    }, 7000);
+    return () => { clearInterval(id); io.disconnect(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length]);
   return (
     <div className="revelar w-full flex flex-col items-center gap-4">
-      <div ref={ref} onScroll={alDeslizar}
+      <div ref={ref} onScroll={alDeslizar} onTouchStart={pausar} onPointerDown={pausar}
         className={`sin-barra relative flex gap-4 overflow-x-auto snap-x snap-mandatory -mx-5 w-[calc(100%+2.5rem)] px-5 pb-1 md:mx-0 md:w-full md:px-0 md:pb-0 md:grid md:overflow-visible ${grilla}`}>
         {items.map((c, i) => <div key={i} className="snap-center shrink-0 w-[84%] sm:w-[62%] md:w-auto flex [&>*]:w-full">{c}</div>)}
       </div>
       {items.length > 1 && (
         <div className="flex items-center gap-2 md:hidden">
           {items.map((_, i) => (
-            <button key={i} type="button" onClick={() => ir(i)} aria-label={`Ver ${i + 1} de ${items.length}`}
+            <button key={i} type="button" onClick={() => { pausar(); ir(i); }} aria-label={`Ver ${i + 1} de ${items.length}`}
               className={`h-2 rounded-full transition-all ${i === actual ? 'w-6 bg-oro' : `w-2 ${oscuro ? 'bg-white/30' : 'bg-linea'}`}`} />
           ))}
         </div>
