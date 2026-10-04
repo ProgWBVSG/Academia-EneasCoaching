@@ -21,7 +21,7 @@ const YT = SITIO.video.id;
 // ── Datos estructurados ───────────────────────────────────────────────
 const org = {
   '@type': 'EducationalOrganization', '@id': `${U}/#organizacion`, name: SITIO.nombre, url: `${U}/`,
-  logo: { '@type': 'ImageObject', url: `${U}/favicon.png` }, image: OG,
+  logo: { '@type': 'ImageObject', url: `${U}/icon-512.png` }, image: OG,
   description: 'Academia online de Eneagrama aplicado al autoconocimiento, los vínculos, el trabajo con personas y los equipos, dirigida por Cecilia B. Sánchez.',
   founder: { '@id': `${U}/#cecilia` }, sameAs: SITIO.redes, areaServed: 'Iberoamérica', inLanguage: 'es',
   address: { '@type': 'PostalAddress', addressLocality: 'Córdoba', addressCountry: 'AR' },
