@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { Link } from 'react-router-dom';
 import {
   BookOpen, CalendarDays, MessagesSquare, Users, Check, ArrowRight, ChevronDown, Play,
-  Library, Briefcase, UserRound, Sparkles, ArrowUp, Brain, Compass, Scale, GraduationCap,
+  Library, Briefcase, UserRound, Heart, Sparkles, ArrowUp, Brain, Compass, Scale, GraduationCap,
   Handshake, MessageCircleWarning, Mic,
 } from 'lucide-react';
 import Eneagrama from '../components/Eneagrama';
@@ -31,12 +31,12 @@ function urlEmbed(url: string): string | null {
 }
 
 const ESCENAS = [
-  'Esa reacción tuya que se repite en el trabajo, y todavía no sabés de dónde viene.',
+  'Reaccionás de una forma que no te gusta, y no terminás de entender de dónde viene.',
+  'Discutís siempre por lo mismo con alguien que querés.',
+  'Decís que sí cuando querías decir que no, y después te enojás con vos.',
   'La mala noticia que tenés que dar sin saber cómo la van a recibir.',
   'Dos personas de tu equipo que no se soportan, y te toca a vos mediar.',
-  'La negociación que se traba por algo que no tiene nada que ver con el tema.',
-  'El paciente o el alumno que vuelve siempre al mismo punto, por más que le expliques.',
-  'Esa persona con la que hagas lo que hagas, sentís que hablan idiomas distintos.',
+  'Esa persona con la que, hagas lo que hagas, sentís que hablan idiomas distintos.',
 ];
 
 const PROFESIONES = [
@@ -60,22 +60,22 @@ const TIPOS: Record<number, { nombre: string; mueve: string; traba: string; esce
   9: { nombre: 'la paz', mueve: 'Que haya armonía.', traba: 'Se posterga para evitar el conflicto, hasta no saber qué quiere.', escena: 'Dice que está todo bien, y después no hace lo que acordaron.' },
 };
 
-// Lo que cambia, en tres lugares del trabajo
+// Lo que cambia: primero en vos, después con tu gente y en tu trabajo
 const USOS = [
-  { icono: Handshake, titulo: 'Con tus clientes', items: [
-    'En la primera conversación ya intuís qué mueve a la persona que tenés enfrente.',
-    'Sabés cómo hablarle a cada uno para que te escuche y confíe.',
-    'Das una mala noticia sabiendo cómo la va a recibir.',
-  ] },
-  { icono: Users, titulo: 'Con tu equipo', items: [
-    'Entendés por qué dos personas chocan, y qué necesita cada una.',
-    'Repartís las tareas según cómo funciona cada persona.',
-    'Das devoluciones que se reciben, en lugar de discusiones.',
-  ] },
   { icono: UserRound, titulo: 'Con vos', items: [
-    'Ves qué parte de tu forma de ser se mete en tu trabajo.',
-    'Trabajás con más humanidad sin perder profesionalismo.',
-    'Y de paso, te entendés mejor a vos y a tu gente.',
+    'Entendés por qué reaccionás como reaccionás, y dejás de pelearte con tu forma de ser.',
+    'Reconocés tus patrones a tiempo, no tres días después.',
+    'Tenés prácticas para tu propio tipo: meditaciones y ejercicios.',
+  ] },
+  { icono: Heart, titulo: 'Con tu gente', items: [
+    'Dejás de tomarte como algo personal lo que es la forma de ser del otro.',
+    'Sabés cómo pedirle algo a cada persona para que te escuche.',
+    'En una discusión entendés qué necesita el otro y qué necesitás vos.',
+  ] },
+  { icono: Briefcase, titulo: 'En tu trabajo', items: [
+    'En la primera conversación ya intuís qué mueve a la persona que tenés enfrente.',
+    'Entendés por qué dos personas de tu equipo chocan.',
+    'Das una devolución o una mala noticia sabiendo cómo la van a recibir.',
   ] },
 ];
 
@@ -128,9 +128,9 @@ const EXTRAS = [
 ];
 
 const PARA_VOS = [
-  'Trabajás con personas y sentís que la técnica no siempre te alcanza para llegarles.',
+  'Querés entender por qué reaccionás como reaccionás, en el trabajo y en tu vida.',
   'Estás dispuesto a observarte con honestidad antes de observar a los demás.',
-  'Querés trabajar con más humanidad sin perder profesionalismo.',
+  'Trabajás con personas y sentís que la técnica no siempre te alcanza para llegarles.',
   'Nunca estudiaste el Eneagrama y querés aprenderlo para aplicarlo, no como teoría.',
   'Ya lo conocés, pero te cuesta llevarlo a tus conversaciones de trabajo.',
   'Preferís aprender con colegas y con casos reales, no solo con videos.',
@@ -343,10 +343,10 @@ export default function Landing() {
       {/* Promesa, video y bajada */}
       <section className="max-w-5xl mx-auto px-5 pt-12 pb-16 md:pt-16 md:pb-20 flex flex-col items-center text-center gap-7">
         <h1 className="text-[2.1rem] md:text-[3rem] leading-[1.1] font-extrabold tracking-tight">
-          <span className="md:whitespace-nowrap">Hay algo que tu profesión</span><br />
-          <span className="text-oro md:whitespace-nowrap">no te enseñó sobre las personas.</span>
+          <span className="md:whitespace-nowrap">Para entender a los demás,</span><br />
+          <span className="text-oro md:whitespace-nowrap">primero hay que entenderse.</span>
         </h1>
-        <p className="text-lg md:text-xl text-tinta font-semibold -mt-2">Mirá el video: en menos de cinco minutos vas a entender qué es.</p>
+        <p className="text-lg md:text-xl text-tinta font-semibold -mt-2">Mirá el video: en menos de cinco minutos vas a entender cómo.</p>
         <div className="w-full max-w-4xl"><VideoCecilia /></div>
         <p className="text-lg md:text-xl text-gris max-w-xl">
           El Eneagrama aplicado a tu trabajo y a tu vida, con Cecilia B. Sánchez.
@@ -366,7 +366,7 @@ export default function Landing() {
         </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gris">
           <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Para quien empieza y para quien ya lo conoce</span>
-          <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Para cualquier profesión con personas</span>
+          <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Para tu trabajo y para tu vida</span>
           <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Cancelás cuando quieras</span>
           {info?.proximo && (
             <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Próximo vivo: {new Date(info.proximo.inicio).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}</span>
@@ -377,7 +377,7 @@ export default function Landing() {
       {/* Dolores */}
       <section className="bg-tinta text-crema">
         <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
-          <Encabezado oscuro titulo={<><span className="md:whitespace-nowrap">Tenés el conocimiento.</span><br /><span className="text-oro-claro md:whitespace-nowrap">Lo difícil son las personas.</span></>} />
+          <Encabezado oscuro titulo={<><span className="md:whitespace-nowrap">Lo difícil no es la técnica.</span><br /><span className="text-oro-claro md:whitespace-nowrap">Son las personas, empezando por vos.</span></>} />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
             {ESCENAS.map((e, i) => (
               <div key={e} style={retraso(i)} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-4">
@@ -387,27 +387,8 @@ export default function Landing() {
             ))}
           </div>
           <p className="revelar text-crema text-xl md:text-2xl font-display font-bold leading-snug max-w-3xl text-center">
-            En cualquier trabajo con personas, la técnica resuelve la mitad. La otra mitad es humana: qué mueve a cada uno, qué teme y cómo escucha. El Eneagrama es el mapa de esa mitad.
+            En el trabajo y en la vida, lo que más cuesta es entender qué nos mueve: a nosotros y a los demás. El Eneagrama es el mapa de eso. Y empieza por vos.
           </p>
-        </div>
-      </section>
-
-      {/* Profesiones */}
-      <section id="profesiones" className="bg-oro-suave scroll-mt-16">
-        <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
-          <Encabezado
-            titulo="En tu profesión, la diferencia es humana"
-            texto="La Academia es para cualquier persona que trabaja con otras personas. Aprendés a usar el Eneagrama con casos de tu área." />
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {PROFESIONES.map((p, i) => (
-              <div key={p.titulo} style={retraso(i)} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-3">
-                <Icono icono={p.icono} />
-                <h3 className="font-bold text-lg">{p.titulo}</h3>
-                <p className="text-gris text-[15px] leading-relaxed">{p.texto}</p>
-              </div>
-            ))}
-          </div>
-          <p className="revelar text-gris text-center max-w-2xl">¿Trabajás en otra área? También es para vos: si hay una persona del otro lado, sirve.</p>
         </div>
       </section>
 
@@ -415,7 +396,7 @@ export default function Landing() {
       <section id="eneagrama" className="max-w-4xl mx-auto px-5 py-20 scroll-mt-16 flex flex-col items-center gap-8">
         <Encabezado
           titulo="Nueve tipos, nueve formas de reaccionar"
-          texto="El Eneagrama no mira solo lo que una persona hace, sino por qué lo hace. Dos clientes pueden no firmar por motivos opuestos: uno por miedo a que salga mal, otro porque siente que no lo escuchaste. Si ves el motivo, sabés qué decir." />
+          texto="El Eneagrama no mira solo lo que una persona hace, sino por qué lo hace. Dos personas pueden reaccionar igual por motivos opuestos. Cuando ves el motivo, primero en vos y después en el otro, sabés qué hacer." />
         <div className="revelar relative flex justify-center text-tinta">
           <div className="absolute inset-8 rounded-full bg-oro-suave blur-2xl opacity-80" aria-hidden />
           <div className="relative"><Eneagrama tam={380} resaltar={tipo} onElegir={setTipo} /></div>
@@ -425,14 +406,14 @@ export default function Landing() {
           <p className="font-display font-extrabold text-2xl"><span className="text-oro">Tipo {tipo}</span>, {t.nombre}</p>
           <p className="text-[15px]"><span className="font-semibold">Qué lo mueve:</span> <span className="text-gris">{t.mueve}</span></p>
           <p className="text-[15px]"><span className="font-semibold">Dónde se traba:</span> <span className="text-gris">{t.traba}</span></p>
-          <p className="text-[15px] bg-oro-suave rounded-lg px-4 py-2.5"><span className="font-semibold">En tu trabajo:</span> {t.escena}</p>
+          <p className="text-[15px] bg-oro-suave rounded-lg px-4 py-2.5"><span className="font-semibold">Por ejemplo:</span> {t.escena}</p>
         </div>
       </section>
 
       {/* Lo que cambia, y el laboratorio */}
       <section className="bg-tinta text-crema">
         <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
-          <Encabezado oscuro titulo="Lo que cambia cuando sabés leer a las personas" texto="Lo vas a notar en tres lugares." />
+          <Encabezado oscuro titulo="Lo que cambia cuando te conocés y conocés al otro" texto="Primero en vos. Después, en todos los lugares donde hay personas." />
           <div className="grid md:grid-cols-3 gap-4 w-full">
             {USOS.map((u, i) => (
               <div key={u.titulo} style={retraso(i)} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-7 flex flex-col items-center text-center gap-4">
@@ -458,6 +439,25 @@ export default function Landing() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Profesiones */}
+      <section id="profesiones" className="bg-oro-suave scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
+          <Encabezado
+            titulo="En tu profesión, la diferencia es humana"
+            texto="La Academia es para cualquier persona que trabaja con otras personas. Aprendés a usar el Eneagrama con casos de tu área." />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+            {PROFESIONES.map((p, i) => (
+              <div key={p.titulo} style={retraso(i)} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-3">
+                <Icono icono={p.icono} />
+                <h3 className="font-bold text-lg">{p.titulo}</h3>
+                <p className="text-gris text-[15px] leading-relaxed">{p.texto}</p>
+              </div>
+            ))}
+          </div>
+          <p className="revelar text-gris text-center max-w-2xl">¿Trabajás en otra área? También es para vos: si hay una persona del otro lado, sirve.</p>
         </div>
       </section>
 
@@ -599,7 +599,7 @@ export default function Landing() {
       <section className="max-w-4xl mx-auto px-5 pb-20">
         <div className="revelar rounded-3xl bg-tinta text-crema px-6 py-14 md:px-14 flex flex-col items-center text-center gap-5">
           <span className="text-crema/80"><Eneagrama tam={64} /></span>
-          <h2 className="text-3xl md:text-4xl font-extrabold leading-tight max-w-2xl">Detrás de cada caso hay una persona. <span className="text-oro-claro">Aprendé a leerla.</span></h2>
+          <h2 className="text-3xl md:text-4xl font-extrabold leading-tight max-w-2xl">Primero te conocés vos. <span className="text-oro-claro">Después entendés al otro.</span></h2>
           <Link to={cta} className="btn btn-oro btn-grande">Quiero sumarme por {mensual} al mes <ArrowRight className="w-4 h-4" /></Link>
           {cupos && <p className="text-sm text-crema/70">{cupos}</p>}
         </div>
