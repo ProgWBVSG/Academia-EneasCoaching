@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Children, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen, CalendarDays, MessagesSquare, Users, Check, ArrowRight, ChevronDown, Play,
   Library, Briefcase, UserRound, Heart, Sparkles, ArrowUp, Brain, Compass, Scale, GraduationCap,
-  Handshake, MessageCircleWarning, Mic,
+  Handshake, MessageCircleWarning, Mic, X,
 } from 'lucide-react';
 import Eneagrama from '../components/Eneagrama';
 import { useAuth } from '../lib/auth';
@@ -197,10 +197,10 @@ function Icono({ icono: I, oscuro = false }: { icono: typeof BookOpen; oscuro?: 
   );
 }
 
-function TarjetaTestimonio({ t, style }: { t: Testimonio; style: CSSProperties }) {
+function TarjetaTestimonio({ t }: { t: Testimonio }) {
   const embed = t.tipo === 'video' && t.url ? urlEmbed(t.url) : null;
   return (
-    <figure style={style} className="revelar tarjeta p-5 flex flex-col items-center text-center gap-4 overflow-hidden">
+    <figure className="tarjeta p-5 flex flex-col items-center text-center gap-4 overflow-hidden">
       {t.tipo === 'video' && t.url && (
         <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-tinta">
           {embed
@@ -254,6 +254,95 @@ function VideoPropio() {
   );
 }
 
+// En celular las tarjetas se deslizan de costado, una por vez, con puntos para saber dónde estás.
+// Desde tablet se ven en grilla. "grilla" trae las columnas (por ejemplo "md:grid-cols-3").
+function Carrusel({ children, grilla, oscuro = false }: { children: ReactNode; grilla: string; oscuro?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [actual, setActual] = useState(0);
+  const items = Children.toArray(children);
+  const alDeslizar = () => {
+    const el = ref.current;
+    const primero = el?.firstElementChild as HTMLElement | null;
+    if (!el || !primero) return;
+    setActual(Math.min(items.length - 1, Math.round(el.scrollLeft / (primero.offsetWidth + 16))));
+  };
+  const ir = (i: number) => {
+    const el = ref.current;
+    const hijo = el?.children[i] as HTMLElement | undefined;
+    if (el && hijo) el.scrollTo({ left: hijo.offsetLeft - (el.clientWidth - hijo.offsetWidth) / 2, behavior: 'smooth' });
+  };
+  return (
+    <div className="revelar w-full flex flex-col items-center gap-4">
+      <div ref={ref} onScroll={alDeslizar}
+        className={`sin-barra relative flex gap-4 overflow-x-auto snap-x snap-mandatory -mx-5 w-[calc(100%+2.5rem)] px-5 pb-1 md:mx-0 md:w-full md:px-0 md:pb-0 md:grid md:overflow-visible ${grilla}`}>
+        {items.map((c, i) => <div key={i} className="snap-center shrink-0 w-[84%] sm:w-[62%] md:w-auto flex [&>*]:w-full">{c}</div>)}
+      </div>
+      {items.length > 1 && (
+        <div className="flex items-center gap-2 md:hidden">
+          {items.map((_, i) => (
+            <button key={i} type="button" onClick={() => ir(i)} aria-label={`Ver ${i + 1} de ${items.length}`}
+              className={`h-2 rounded-full transition-all ${i === actual ? 'w-6 bg-oro' : `w-2 ${oscuro ? 'bg-white/30' : 'bg-linea'}`}`} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Pilar de la comunidad: título a la vista y el detalle se despliega con la flecha
+function Pilar({ p }: { p: typeof PILARES[number] }) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <div className="tarjeta p-6 md:p-7 flex flex-col items-center text-center gap-3">
+      <Icono icono={p.icono} />
+      <h3 className="font-bold text-xl">{p.titulo}</h3>
+      <p className="text-oro font-semibold text-[15px]">{p.bajada}</p>
+      <button type="button" onClick={() => setAbierto(!abierto)} aria-expanded={abierto}
+        className="flex items-center gap-1.5 text-sm font-semibold text-tinta hover:text-oro transition-colors">
+        {abierto ? 'Ver menos' : 'Ver qué incluye'}
+        <ChevronDown className={`w-4 h-4 transition-transform ${abierto ? 'rotate-180' : ''}`} />
+      </button>
+      <div className={`grid transition-all duration-300 ${abierto ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+        <ul className="overflow-hidden flex flex-col gap-2.5 text-gris text-[15px] leading-relaxed">
+          {p.items.map(x => <li key={x}>{x}</li>)}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// Botón flotante de WhatsApp: un pulso suave y, a los pocos segundos, un globito que invita a consultar
+function BotonWhatsApp({ elevado }: { elevado: boolean }) {
+  const [globo, setGlobo] = useState(false);
+  useEffect(() => {
+    let cerrado = false;
+    try { cerrado = sessionStorage.getItem('globo-wpp') === 'cerrado'; } catch { /* sin almacenamiento */ }
+    if (cerrado) return;
+    const id = setTimeout(() => setGlobo(true), 6000);
+    return () => clearTimeout(id);
+  }, []);
+  const cerrar = () => {
+    setGlobo(false);
+    try { sessionStorage.setItem('globo-wpp', 'cerrado'); } catch { /* sin almacenamiento */ }
+  };
+  return (
+    <div className={`fixed right-5 z-40 flex items-end gap-3 transition-[bottom] duration-300 ${elevado ? 'bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]' : 'bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]'}`}>
+      {globo && (
+        <div className="globo-wpp relative max-w-[230px] bg-white text-tinta rounded-2xl rounded-br-sm shadow-xl shadow-black/15 border border-linea px-4 py-3 text-sm text-center">
+          <button type="button" onClick={cerrar} aria-label="Cerrar" className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-tinta text-crema flex items-center justify-center"><X className="w-3.5 h-3.5" /></button>
+          <p className="font-semibold">¿Tenés alguna duda?</p>
+          <p className="text-gris">Escribinos por WhatsApp. Te asistimos con cualquier consulta.</p>
+        </div>
+      )}
+      <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp" onClick={cerrar}
+        className="relative w-14 h-14 shrink-0 rounded-full bg-[#25D366] text-white shadow-lg shadow-black/25 flex items-center justify-center transition-transform hover:scale-105">
+        <span className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-30" aria-hidden />
+        <IconoWhatsApp className="relative w-7 h-7" />
+      </a>
+    </div>
+  );
+}
+
 function VideoCecilia() {
   const embed = VSL ? urlEmbed(VSL) : null;
   return (
@@ -281,7 +370,8 @@ function VideoCecilia() {
 export default function Landing() {
   const { perfil } = useAuth();
   const [info, setInfo] = useState<{ miembros: number; proximo: { titulo: string; inicio: string } | null } | null>(null);
-  const [abierta, setAbierta] = useState<number | null>(0);
+  const [abierta, setAbierta] = useState<number | null>(null);
+  const [todasLasPreguntas, setTodasLasPreguntas] = useState(false);
   const [tipo, setTipo] = useState(6);
 
   // Cada bloque con la clase "revelar" aparece suave al entrar en pantalla.
@@ -298,8 +388,14 @@ export default function Landing() {
   }, []);
 
   const [verArriba, setVerArriba] = useState(false);
+  const [verBarra, setVerBarra] = useState(false);
   useEffect(() => {
-    const alBajar = () => setVerArriba(window.scrollY > 900);
+    const alBajar = () => {
+      setVerArriba(window.scrollY > 900);
+      // La barra para sumarse aparece pasando el video y se esconde al llegar al final
+      const alFinal = window.innerHeight + window.scrollY > document.documentElement.scrollHeight - 500;
+      setVerBarra(window.scrollY > 700 && !alFinal);
+    };
     alBajar();
     window.addEventListener('scroll', alBajar, { passive: true });
     return () => window.removeEventListener('scroll', alBajar);
@@ -376,16 +472,16 @@ export default function Landing() {
 
       {/* Dolores */}
       <section className="bg-tinta text-crema">
-        <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
+        <div className="max-w-6xl mx-auto px-5 py-14 md:py-20 flex flex-col items-center gap-9 md:gap-12">
           <Encabezado oscuro titulo={<><span className="md:whitespace-nowrap">Lo difícil no es la técnica.</span><br /><span className="text-oro-claro md:whitespace-nowrap">Son las personas, empezando por vos.</span></>} />
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {ESCENAS.map((e, i) => (
-              <div key={e} style={retraso(i)} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-4">
+          <Carrusel oscuro grilla="md:grid-cols-2 lg:grid-cols-3">
+            {ESCENAS.map(e => (
+              <div key={e} className="rounded-2xl border border-white/10 bg-white/[.04] p-6 flex flex-col items-center text-center gap-4">
                 <Icono icono={MessageCircleWarning} oscuro />
                 <p className="text-crema/90 text-[15.5px] leading-relaxed">{e}</p>
               </div>
             ))}
-          </div>
+          </Carrusel>
           <p className="revelar text-crema text-xl md:text-2xl font-display font-bold leading-snug max-w-3xl text-center">
             En el trabajo y en la vida, lo que más cuesta es entender qué nos mueve: a nosotros y a los demás. El Eneagrama es el mapa de eso. Y empieza por vos.
           </p>
@@ -393,7 +489,7 @@ export default function Landing() {
       </section>
 
       {/* Qué es el Eneagrama, interactivo */}
-      <section id="eneagrama" className="max-w-4xl mx-auto px-5 py-20 scroll-mt-16 flex flex-col items-center gap-8">
+      <section id="eneagrama" className="max-w-4xl mx-auto px-5 py-14 md:py-20 scroll-mt-16 flex flex-col items-center gap-8">
         <Encabezado
           titulo="Nueve tipos, nueve formas de reaccionar"
           texto="El Eneagrama no mira solo lo que una persona hace, sino por qué lo hace. Dos personas pueden reaccionar igual por motivos opuestos. Cuando ves el motivo, primero en vos y después en el otro, sabés qué hacer." />
@@ -412,11 +508,11 @@ export default function Landing() {
 
       {/* Lo que cambia, y el laboratorio */}
       <section className="bg-tinta text-crema">
-        <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
+        <div className="max-w-6xl mx-auto px-5 py-14 md:py-20 flex flex-col items-center gap-9 md:gap-12">
           <Encabezado oscuro titulo="Lo que cambia cuando te conocés y conocés al otro" texto="Primero en vos. Después, en todos los lugares donde hay personas." />
-          <div className="grid md:grid-cols-3 gap-4 w-full">
-            {USOS.map((u, i) => (
-              <div key={u.titulo} style={retraso(i)} className="revelar rounded-2xl border border-white/10 bg-white/[.04] p-7 flex flex-col items-center text-center gap-4">
+          <Carrusel oscuro grilla="md:grid-cols-3">
+            {USOS.map(u => (
+              <div key={u.titulo} className="rounded-2xl border border-white/10 bg-white/[.04] p-7 flex flex-col items-center text-center gap-4">
                 <Icono icono={u.icono} oscuro />
                 <h3 className="font-bold text-xl">{u.titulo}</h3>
                 <ul className="flex flex-col gap-3 text-crema/75 text-[15px] leading-relaxed">
@@ -424,7 +520,7 @@ export default function Landing() {
                 </ul>
               </div>
             ))}
-          </div>
+          </Carrusel>
           <div className="flex flex-col items-center gap-6 w-full pt-4">
             <div className="revelar flex flex-col items-center text-center gap-3 max-w-2xl">
               <h3 className="font-display font-extrabold text-2xl md:text-3xl">Y para practicar, un cliente que no sabés de qué tipo es</h3>
@@ -444,29 +540,29 @@ export default function Landing() {
 
       {/* Profesiones */}
       <section id="profesiones" className="bg-oro-suave scroll-mt-16">
-        <div className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-12">
+        <div className="max-w-6xl mx-auto px-5 py-14 md:py-20 flex flex-col items-center gap-9 md:gap-12">
           <Encabezado
             titulo="En tu profesión, la diferencia es humana"
             texto="La Academia es para cualquier persona que trabaja con otras personas. Aprendés a usar el Eneagrama con casos de tu área." />
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-            {PROFESIONES.map((p, i) => (
-              <div key={p.titulo} style={retraso(i)} className="revelar tarjeta p-6 flex flex-col items-center text-center gap-3">
+          <Carrusel grilla="md:grid-cols-2 lg:grid-cols-3">
+            {PROFESIONES.map(p => (
+              <div key={p.titulo} className="tarjeta p-6 flex flex-col items-center text-center gap-3">
                 <Icono icono={p.icono} />
                 <h3 className="font-bold text-lg">{p.titulo}</h3>
                 <p className="text-gris text-[15px] leading-relaxed">{p.texto}</p>
               </div>
             ))}
-          </div>
+          </Carrusel>
           <p className="revelar text-gris text-center max-w-2xl">¿Trabajás en otra área? También es para vos: si hay una persona del otro lado, sirve.</p>
         </div>
       </section>
 
       {/* Dos puntos de partida */}
-      <section className="max-w-6xl mx-auto px-5 py-20 flex flex-col gap-12">
+      <section className="max-w-6xl mx-auto px-5 py-14 md:py-20 flex flex-col gap-9 md:gap-12">
         <Encabezado titulo="Sepas o no de Eneagrama, hay algo para vos" texto="La Academia te da las bases y una comunidad para practicar. Si después buscás profundidad, la Diplomatura y las mentorías son el siguiente paso." />
-        <div className="grid md:grid-cols-2 gap-4">
-          {CAMINOS.map((c, i) => (
-            <div key={c.titulo} style={retraso(i, 2)} className="revelar tarjeta p-7 md:p-8 flex flex-col items-center text-center gap-5">
+        <Carrusel grilla="md:grid-cols-2">
+          {CAMINOS.map(c => (
+            <div key={c.titulo} className="tarjeta p-7 md:p-8 flex flex-col items-center text-center gap-5">
               <div className="flex flex-col items-center gap-1"><h3 className="font-display font-extrabold text-2xl">{c.titulo}</h3><p className="text-oro font-semibold text-[15px]">{c.bajada}</p></div>
               <ul className="flex flex-col items-center gap-4">
                 {c.items.map(x => (
@@ -478,22 +574,15 @@ export default function Landing() {
               </ul>
             </div>
           ))}
-        </div>
+        </Carrusel>
       </section>
 
       {/* Qué incluye */}
-      <section id="incluye" className="max-w-6xl mx-auto px-5 pb-20 scroll-mt-16 flex flex-col gap-10">
+      <section id="incluye" className="max-w-6xl mx-auto px-5 pb-14 md:pb-20 scroll-mt-16 flex flex-col gap-10">
         <Encabezado titulo="Todo lo que incluye la comunidad" texto="Cuatro pilares para aprender las bases, practicar y pensar con otros, y dos herramientas para usar en tu trabajo." />
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-4 items-start">
           {PILARES.map((p, i) => (
-            <div key={p.titulo} style={retraso(i, 2)} className="revelar tarjeta p-7 md:p-8 flex flex-col items-center text-center gap-3">
-              <Icono icono={p.icono} />
-              <h3 className="font-bold text-xl">{p.titulo}</h3>
-              <p className="text-oro font-semibold text-[15px]">{p.bajada}</p>
-              <ul className="flex flex-col gap-2.5 text-gris text-[15px] leading-relaxed mt-1">
-                {p.items.map(x => <li key={x}>{x}</li>)}
-              </ul>
-            </div>
+            <div key={p.titulo} style={retraso(i, 2)} className="revelar"><Pilar p={p} /></div>
           ))}
         </div>
         <h3 className="revelar font-display font-extrabold text-2xl text-center pt-4">Y además, dos herramientas</h3>
@@ -510,7 +599,7 @@ export default function Landing() {
 
       {/* Es para vos si */}
       <section className="bg-oro-suave">
-        <div className="max-w-5xl mx-auto px-5 py-20 flex flex-col items-center gap-10">
+        <div className="max-w-5xl mx-auto px-5 py-14 md:py-20 flex flex-col items-center gap-10">
           <Encabezado titulo="La Academia es para vos si te reconocés en alguna de estas" />
           <ul className="grid sm:grid-cols-2 gap-4 w-full">
             {PARA_VOS.map((p, i) => (
@@ -524,7 +613,7 @@ export default function Landing() {
       </section>
 
       {/* Cecilia y testimonios */}
-      <section className="max-w-6xl mx-auto px-5 py-20 flex flex-col items-center gap-14">
+      <section className="max-w-6xl mx-auto px-5 py-14 md:py-20 flex flex-col items-center gap-14">
         <div className="revelar flex flex-col items-center text-center gap-5 max-w-2xl">
           <img src="/cecilia.jpg" alt="Cecilia B. Sánchez" className="w-44 h-44 md:w-52 md:h-52 rounded-full object-cover ring-4 ring-oro-suave" />
           <h2 className="text-3xl md:text-4xl font-extrabold">Cecilia B. Sánchez</h2>
@@ -540,15 +629,15 @@ export default function Landing() {
         </div>
         <div className="flex flex-col items-center gap-8 w-full">
           <h3 className="revelar font-display font-extrabold text-2xl text-center">Lo que dicen quienes trabajaron con Cecilia</h3>
-          <div className="grid md:grid-cols-3 gap-4 w-full items-start">
-            {TESTIMONIOS.map((x, i) => <TarjetaTestimonio key={x.nombre + i} t={x} style={retraso(i)} />)}
-          </div>
+          <Carrusel grilla="md:grid-cols-3 md:items-start">
+            {TESTIMONIOS.map((x, i) => <TarjetaTestimonio key={x.nombre + i} t={x} />)}
+          </Carrusel>
         </div>
       </section>
 
       {/* Precio */}
       <section id="precio" className="bg-tinta text-crema scroll-mt-16">
-        <div className="max-w-4xl mx-auto px-5 py-20 flex flex-col items-center gap-10">
+        <div className="max-w-4xl mx-auto px-5 py-14 md:py-20 flex flex-col items-center gap-10">
           <Encabezado oscuro
             titulo="Todo esto, por una cuota mensual y sin permanencia"
             texto="Si después querés formarte como eneagramista, o implementar el Eneagrama en tu empresa, la Diplomatura y las mentorías de Cecilia siguen disponibles. La Academia es el mejor lugar para empezar." />
@@ -577,10 +666,10 @@ export default function Landing() {
       </section>
 
       {/* Preguntas frecuentes */}
-      <section className="max-w-3xl mx-auto px-5 py-20 flex flex-col gap-8">
+      <section className="max-w-3xl mx-auto px-5 py-14 md:py-20 flex flex-col gap-8">
         <Encabezado titulo="Preguntas frecuentes" />
         <div className="revelar flex flex-col gap-3">
-          {FAQ.map(([p, r], i) => (
+          {(todasLasPreguntas ? FAQ : FAQ.slice(0, 5)).map(([p, r], i) => (
             <div key={p} className="tarjeta">
               <button onClick={() => setAbierta(abierta === i ? null : i)} aria-expanded={abierta === i} className="w-full flex items-center justify-center gap-3 text-center px-5 py-4 font-semibold">
                 {p}<ChevronDown className={`w-5 h-5 text-gris shrink-0 transition-transform ${abierta === i ? 'rotate-180' : ''}`} />
@@ -588,6 +677,11 @@ export default function Landing() {
               {abierta === i && <p className="px-6 pb-5 -mt-1 text-gris text-center">{r}</p>}
             </div>
           ))}
+          {!todasLasPreguntas && FAQ.length > 5 && (
+            <button type="button" onClick={() => setTodasLasPreguntas(true)} className="self-center flex items-center gap-1.5 text-sm font-semibold text-tinta hover:text-oro pt-1">
+              Ver más preguntas <ChevronDown className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <div className="revelar flex flex-col items-center text-center gap-3 pt-2">
           <p className="text-gris">¿Te quedó alguna duda? Hablá con nosotros antes de decidir.</p>
@@ -605,15 +699,17 @@ export default function Landing() {
         </div>
       </section>
 
-      <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp"
-        className="fixed right-5 z-40 w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg shadow-black/25 flex items-center justify-center transition-transform hover:scale-105"
-        style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}>
-        <IconoWhatsApp className="w-7 h-7" />
-      </a>
+      {/* Barra fija para sumarse, solo en celular */}
+      <div className={`md:hidden fixed inset-x-0 bottom-0 z-30 bg-crema/95 backdrop-blur border-t border-linea px-4 pt-3 transition-transform duration-300 ${verBarra ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }} aria-hidden={!verBarra}>
+        <Link to={cta} tabIndex={verBarra ? 0 : -1} className="btn btn-oro w-full !py-3 text-[15px]">Sumarme por {mensual} al mes</Link>
+      </div>
+
+      <BotonWhatsApp elevado={verBarra} />
 
       <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Volver arriba"
-        className={`fixed right-5 z-40 w-12 h-12 rounded-full bg-tinta text-oro-claro shadow-lg shadow-black/25 flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 ${verArriba ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
-        style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))', right: '1.5rem' }} tabIndex={verArriba ? 0 : -1}>
+        className={`fixed z-40 w-12 h-12 rounded-full bg-tinta text-oro-claro shadow-lg shadow-black/25 flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 ${verArriba ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'} ${verBarra ? 'bottom-[calc(11rem+env(safe-area-inset-bottom,0px))] md:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]' : 'bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]'}`}
+        style={{ right: '1.5rem' }} tabIndex={verArriba ? 0 : -1}>
         <ArrowUp className="w-5 h-5" />
       </button>
 
