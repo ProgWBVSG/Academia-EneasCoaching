@@ -43,7 +43,7 @@ export default function Layout() {
   const enMembresia = loc.pathname.startsWith('/app/membresia');
   // Aviso cuando el acceso pagado por transferencia vence en los próximos 5 días
   const dias = perfil.vence ? Math.ceil((new Date(perfil.vence).getTime() - Date.now()) / 86400000) : null;
-  const porVencer = activa && perfil.rol !== 'admin' && perfil.metodo_pago === 'transferencia' && dias !== null && dias <= 5;
+  const porVencer = activa && perfil.rol !== 'admin' && ['transferencia', 'manual'].includes(perfil.metodo_pago || '') && dias !== null && dias <= 5;
 
   return (
     <div className="min-h-screen flex flex-col">

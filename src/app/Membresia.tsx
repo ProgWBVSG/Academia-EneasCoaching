@@ -10,7 +10,7 @@ import { IconoWhatsApp } from '../pages/Landing';
 // Exterior: tarjeta internacional o PayPal (Lemon Squeezy), en dólares.
 
 type Opciones = {
-  usd: number; ars: number | null; mp: boolean; internacional: boolean;
+  usd: number; ars: number | null; mp: boolean; internacional: boolean; internacionalManual: { paypal?: string; instrucciones?: string } | null;
   transferencia: { alias?: string; cbu?: string; titular?: string; banco?: string; cuit?: string } | null;
   metodo: string | null; vence: string | null;
   pendiente: { meses: number; monto: number; moneda: string; creado: string } | null;
@@ -45,12 +45,12 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
   const [referencia, setReferencia] = useState('');
   const [cargando, setCargando] = useState('');
   const [error, setError] = useState('');
-  const [avisado, setAvisado] = useState(false);
+  const [avisado, setAvisado] = useState<'ARS' | 'USD' | null>(null);
 
   useEffect(() => {
     api<Opciones>('pago-opciones').then(o => {
       setOp(o);
-      if (o.pendiente) setAvisado(true);
+      if (o.pendiente) setAvisado(o.pendiente.moneda === 'USD' ? 'USD' : 'ARS');
       if (o.metodo === 'transferencia') setMetodo('transferencia');
       if (!o.mp && o.transferencia) setMetodo('transferencia');
     }).catch(e => setError(e.message));
@@ -64,11 +64,11 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
     } catch (e: any) { setError(e.message); setCargando(''); }
   };
 
-  const avisar = async () => {
-    setCargando('transferencia'); setError('');
+  const avisar = async (via: 'local' | 'internacional' = 'local') => {
+    setCargando(via === 'internacional' ? 'intl-aviso' : 'transferencia'); setError('');
     try {
-      await api('transferencia-aviso', { method: 'POST', body: { meses, referencia } });
-      setAvisado(true);
+      await api('transferencia-aviso', { method: 'POST', body: { meses, referencia, via } });
+      setAvisado(via === 'internacional' ? 'USD' : 'ARS');
     } catch (e: any) { setError(e.message); }
     setCargando('');
   };
@@ -129,7 +129,7 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
               )}
 
               {metodo === 'transferencia' && op.transferencia && (
-                avisado ? (
+                avisado === 'ARS' ? (
                   <div className="tarjeta p-5 flex flex-col items-center gap-3">
                     <Check className="w-7 h-7 text-oro" />
                     <p className="font-bold">¡Gracias! Recibimos tu aviso.</p>
@@ -155,7 +155,7 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
                       <span className="text-gris">Número de operación (opcional, ayuda a confirmarla más rápido)</span>
                       <input id="ref-transferencia" className="campo text-center" value={referencia} onChange={e => setReferencia(e.target.value)} maxLength={80} />
                     </label>
-                    <button onClick={avisar} disabled={!!cargando} className="btn btn-oro btn-grande w-full">
+                    <button onClick={() => avisar()} disabled={!!cargando} className="btn btn-oro btn-grande w-full">
                       {cargando === 'transferencia' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ya transferí'}
                     </button>
                   </div>
@@ -175,14 +175,51 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
               </div>
               <div className="tarjeta p-5 flex flex-col items-center gap-2 text-center">
                 <Globe className="w-6 h-6 text-oro" />
-                <span className="font-bold">Tarjeta internacional o PayPal</span>
-                <span className="text-sm text-gris">Pagás en dólares desde cualquier país. Se cobra solo cada mes y lo cancelás cuando quieras. Los impuestos de tu país, si corresponden, se calculan en el pago.</span>
+                <span className="font-bold">{op.internacional ? 'Tarjeta internacional o PayPal' : 'Pago desde el exterior'}</span>
+                <span className="text-sm text-gris">
+                  {op.internacional
+                    ? 'Pagás en dólares desde cualquier país. Se cobra solo cada mes y lo cancelás cuando quieras. Los impuestos de tu país, si corresponden, se calculan en el pago.'
+                    : 'Pagás en dólares por PayPal o transferencia internacional, por 1 o 3 meses. Te activamos apenas confirmamos el pago.'}
+                </span>
               </div>
               <Error texto={error} />
               {op.internacional ? (
                 <button onClick={() => ir('checkout-internacional')} disabled={!!cargando} className="btn btn-oro btn-grande w-full">
                   {cargando === 'checkout-internacional' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Pagar con tarjeta o PayPal'}
                 </button>
+              ) : op.internacionalManual ? (
+                avisado === 'USD' ? (
+                  <div className="tarjeta p-5 flex flex-col items-center gap-3">
+                    <Check className="w-7 h-7 text-oro" />
+                    <p className="font-bold">¡Gracias! Recibimos tu aviso.</p>
+                    <p className="text-sm text-gris">Te activamos en cuanto confirmemos el pago. Si querés que sea más rápido, mandanos el comprobante por WhatsApp.</p>
+                    <a href={WHATSAPP(`Hola! Hice el pago internacional de la Academia. Soy ${perfil?.nombre} (${perfil?.email}). Te mando el comprobante.`)}
+                      target="_blank" rel="noopener noreferrer" className="btn btn-whatsapp w-full"><IconoWhatsApp className="w-5 h-5" /> Enviar comprobante</a>
+                  </div>
+                ) : (
+                  <div className="tarjeta p-5 flex flex-col items-center gap-4">
+                    <div role="group" aria-label="Meses" className="inline-flex rounded-full p-1 bg-oro-suave text-sm font-semibold">
+                      {([1, 3] as const).map(n => (
+                        <button key={n} type="button" onClick={() => setMeses(n)} aria-pressed={meses === n}
+                          className={`px-4 py-1.5 rounded-full ${meses === n ? 'bg-tinta text-crema' : 'text-gris'}`}>{n === 1 ? '1 mes' : '3 meses'}</button>
+                      ))}
+                    </div>
+                    <p className="text-sm">Pagá <strong className="tabular-nums">USD {op.usd * meses}</strong>{op.internacionalManual.paypal ? ' con PayPal:' : ':'}</p>
+                    {op.internacionalManual.paypal && (
+                      <a href={op.internacionalManual.paypal} target="_blank" rel="noopener noreferrer" className="btn btn-oro btn-grande w-full">Pagar con PayPal</a>
+                    )}
+                    {op.internacionalManual.instrucciones && (
+                      <p className="text-sm text-gris whitespace-pre-line">{op.internacionalManual.instrucciones}</p>
+                    )}
+                    <label className="w-full flex flex-col gap-1.5 text-sm">
+                      <span className="text-gris">Número de operación (opcional, ayuda a confirmarlo más rápido)</span>
+                      <input id="ref-internacional" className="campo text-center" value={referencia} onChange={e => setReferencia(e.target.value)} maxLength={80} />
+                    </label>
+                    <button onClick={() => avisar('internacional')} disabled={!!cargando} className="btn btn-oscuro btn-grande w-full">
+                      {cargando === 'intl-aviso' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ya pagué'}
+                    </button>
+                  </div>
+                )
               ) : (
                 <a href={WHATSAPP('Hola Cecilia! Me registré en la Academia desde otro país y quiero activar mi membresía.')} target="_blank" rel="noopener noreferrer"
                   className="btn btn-whatsapp btn-grande w-full"><IconoWhatsApp className="w-5 h-5" /> Activar por WhatsApp</a>

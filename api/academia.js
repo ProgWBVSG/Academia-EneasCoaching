@@ -69,7 +69,7 @@ async function usuarioDe(req) {
   if (error || !data?.user) return null;
   const perfil = await asegurarPerfil(data.user);
   const gracia = 3 * 24 * 60 * 60 * 1000;
-  if (perfil?.estado === 'activa' && perfil.rol !== 'admin' && perfil.metodo_pago === 'transferencia'
+  if (perfil?.estado === 'activa' && perfil.rol !== 'admin' && ['transferencia', 'manual'].includes(perfil.metodo_pago)
     && perfil.vence && new Date(perfil.vence).getTime() + gracia < Date.now()) {
     const { data: vencido } = await sb.from('academia_perfiles').update({ estado: 'vencida' }).eq('id', perfil.id).select('*').single();
     return vencido;
@@ -203,6 +203,13 @@ const checkoutInternacional = (usd) => env(`LS_CHECKOUT_URL_${usd}`) || env('LS_
 function datosTransferencia() {
   const d = { alias: env('TRANSF_ALIAS'), cbu: env('TRANSF_CBU'), titular: env('TRANSF_TITULAR'), banco: env('TRANSF_BANCO'), cuit: env('TRANSF_CUIT') };
   return d.alias || d.cbu ? d : null;
+}
+
+// Pago internacional manual (puente mientras no haya Lemon Squeezy): link de PayPal y/o instrucciones
+// de transferencia internacional. Se confirma a mano en el panel, igual que la transferencia local.
+function datosInternacionalManual() {
+  const d = { paypal: env('INTL_PAYPAL_URL'), instrucciones: env('INTL_INSTRUCCIONES').replace(/\\n/g, '\n') };
+  return d.paypal || d.instrucciones ? d : null;
 }
 
 async function leerCrudo(req) {
@@ -502,6 +509,7 @@ export default async function handler(req, res) {
         usd, ars,
         mp: Boolean(env('MP_ACCESS_TOKEN') && ars),
         internacional: Boolean(checkoutInternacional(usd)),
+        internacionalManual: datosInternacionalManual(),
         transferencia: datosTransferencia(),
         metodo: yo.metodo_pago || null, vence: yo.vence || null,
         pendiente: pendiente?.[0] || null,
@@ -509,14 +517,18 @@ export default async function handler(req, res) {
     }
 
     if (action === 'transferencia-aviso' && m === 'POST') {
-      if (!datosTransferencia()) return res.status(503).json({ error: 'La transferencia todavía no está habilitada. Escribinos por WhatsApp.' });
+      const internacional = body.via === 'internacional';
+      if (internacional ? !datosInternacionalManual() : !datosTransferencia()) {
+        return res.status(503).json({ error: 'Este medio de pago todavía no está habilitado. Escribinos por WhatsApp.' });
+      }
       const usd = await precioUsdDe(yo);
-      const ars = await precioArs(usd);
-      if (!ars) return res.status(503).json({ error: 'No pudimos calcular el precio en pesos. Probá en unos minutos.' });
+      const unidad = internacional ? usd : await precioArs(usd);
+      if (!unidad) return res.status(503).json({ error: 'No pudimos calcular el precio en pesos. Probá en unos minutos.' });
       const meses = [1, 3].includes(Number(body.meses)) ? Number(body.meses) : 1;
-      await sb.from('academia_pagos').delete().eq('usuario_id', yo.id).eq('estado', 'pendiente').eq('metodo', 'transferencia');
+      const metodo = internacional ? 'internacional' : 'transferencia';
+      await sb.from('academia_pagos').delete().eq('usuario_id', yo.id).eq('estado', 'pendiente').eq('metodo', metodo);
       await sb.from('academia_pagos').insert({
-        usuario_id: yo.id, metodo: 'transferencia', monto: ars * meses, moneda: 'ARS', meses,
+        usuario_id: yo.id, metodo, monto: unidad * meses, moneda: internacional ? 'USD' : 'ARS', meses,
         referencia: String(body.referencia || '').trim().slice(0, 80) || null,
       });
       if (!yo.precio_usd) await sb.from('academia_perfiles').update({ precio_usd: usd }).eq('id', yo.id);
@@ -820,7 +832,7 @@ Máximo 280 palabras.`,
       const { data: perfil } = await sb.from('academia_perfiles').select('vence').eq('id', pago.usuario_id).single();
       const desde = perfil?.vence && new Date(perfil.vence) > new Date() ? perfil.vence : new Date().toISOString();
       const vence = sumarMeses(desde, pago.meses);
-      await sb.from('academia_perfiles').update({ estado: 'activa', metodo_pago: 'transferencia', vence }).eq('id', pago.usuario_id);
+      await sb.from('academia_perfiles').update({ estado: 'activa', metodo_pago: pago.metodo === 'internacional' ? 'manual' : 'transferencia', vence }).eq('id', pago.usuario_id);
       await sb.from('academia_pagos').update({ estado: 'confirmado', confirmado: new Date().toISOString() }).eq('id', pago.id);
       return res.status(200).json({ ok: true, vence });
     }

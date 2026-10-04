@@ -53,8 +53,8 @@ export default function PerfilVista() {
       </form>
       {perfil.estado === 'activa' && perfil.rol !== 'admin' && (
         <p className="text-sm text-gris">
-          {perfil.metodo_pago === 'transferencia'
-            ? `Pagás por transferencia${perfil.vence ? `: tu acceso está pago hasta el ${new Date(perfil.vence).toLocaleDateString('es-AR')}` : ''}. Si no renovás, se pausa solo y tu progreso queda guardado.`
+          {perfil.metodo_pago === 'transferencia' || perfil.metodo_pago === 'manual'
+            ? `Pagás por ${perfil.metodo_pago === 'manual' ? 'PayPal o transferencia internacional' : 'transferencia'}${perfil.vence ? `: tu acceso está pago hasta el ${new Date(perfil.vence).toLocaleDateString('es-AR')}` : ''}. Si no renovás, se pausa solo y tu progreso queda guardado.`
             : perfil.metodo_pago === 'internacional'
               ? 'Para cancelar la membresía, usá el link de gestión que te llegó por mail con tu suscripción. Tu progreso queda guardado si volvés.'
               : 'Para cancelar la membresía, entrá a Mercado Pago, sección Suscripciones. Tu progreso queda guardado si volvés.'}{' '}

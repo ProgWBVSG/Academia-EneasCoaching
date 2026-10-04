@@ -71,7 +71,7 @@ type Pago = {
   estado: 'pendiente' | 'confirmado' | 'rechazado'; referencia: string | null; creado: string; confirmado: string | null;
   perfil: { nombre: string; email: string; vence: string | null } | null;
 };
-const METODO = { mercadopago: 'Mercado Pago', transferencia: 'Transferencia', internacional: 'Internacional' } as const;
+const METODO = { mercadopago: 'Mercado Pago', transferencia: 'Transferencia', internacional: 'PayPal / internacional' } as const;
 const dinero = (p: Pago) => `${p.moneda === 'ARS' ? '$' : p.moneda} ${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 }).format(p.monto)}`;
 
 function Pagos() {
@@ -95,10 +95,10 @@ function Pagos() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <h2 className="font-bold text-lg">Transferencias para confirmar ({pendientes.length})</h2>
-        <p className="text-sm text-gris">Revisá que el dinero haya entrado y confirmá. La persona queda activa por los meses que pagó. Mercado Pago y el pago internacional se activan solos.</p>
+        <h2 className="font-bold text-lg">Pagos para confirmar ({pendientes.length})</h2>
+        <p className="text-sm text-gris">Revisá que el dinero haya entrado (transferencia o PayPal) y confirmá. La persona queda activa por los meses que pagó. Mercado Pago y el pago con tarjeta internacional se activan solos.</p>
         <Error texto={error} />
-        {pendientes.length === 0 ? <Vacio titulo="No hay transferencias esperando." /> : pendientes.map(p => (
+        {pendientes.length === 0 ? <Vacio titulo="No hay pagos esperando." /> : pendientes.map(p => (
           <div key={p.id} className="tarjeta p-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="font-semibold">{p.perfil?.nombre || 'Sin nombre'} <span className="text-gris font-normal text-sm">{p.perfil?.email}</span></p>
