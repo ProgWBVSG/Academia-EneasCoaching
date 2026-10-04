@@ -142,7 +142,7 @@ for (const p of PAGINAS) {
   const { cuerpo, grafo } = PORRUTA[p.ruta];
   escribir(p.ruta, limpio
     .replace('</head>', `  ${cabecera(p, grafo)}\n</head>`)
-    .replace('<div id="root"></div>', `<div id="root" class="previo">${cuerpo}</div>`));
+    .replace('<div id="root"></div>', `<div id="root"><div class="previo">${cuerpo}</div></div>`));
 }
 
 // Página vacía para el resto de las rutas (la plataforma, links viejos): no se indexa
