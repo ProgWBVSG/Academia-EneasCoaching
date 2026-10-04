@@ -9,6 +9,10 @@
     {
       "path": "/api/academia?action=cron-precios-mp",
       "schedule": "0 12 1 * *"
+    },
+    {
+      "path": "/api/academia?action=cron-avisos",
+      "schedule": "0 12 * * *"
     }
   ],
   "headers": [

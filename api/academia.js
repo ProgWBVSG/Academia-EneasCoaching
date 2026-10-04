@@ -292,6 +292,132 @@ function mensajePago(perfil, pago) {
   ].filter(linea => linea !== null).join('\n');
 }
 
+// ── Mails transaccionales ─────────────────────────────────────────────
+// Proveedor por MAIL_PROVEEDOR: "resend" (por defecto) o "brevo". Si no hay clave configurada no se envía nada y la
+// plataforma sigue andando igual: un mail nunca puede frenar un pago ni un alta.
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fechaLarga = (d) => new Date(d).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
+const urlAcademia = (ruta = '') => `${env('ACADEMIA_URL').replace(/\/$/, '')}${ruta}`;
+const urlWhatsapp = (texto) => `https://wa.me/${env('WHATSAPP_NUMERO') || env('VITE_WHATSAPP') || '5493515632496'}?text=${encodeURIComponent(texto)}`;
+
+// Diseño simple y sólido para todos los clientes de correo: tablas, estilos en línea y sin imágenes externas
+export function plantillaMail({ titulo, parrafos = [], boton = null }) {
+  const cuerpo = parrafos.map(x => `<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#1C1A17">${esc(x).replace(/\n/g, '<br>')}</p>`).join('');
+  const bot = boton
+    ? `<p style="margin:22px 0 6px;text-align:center"><a href="${esc(boton.url)}" style="display:inline-block;background:#A8833F;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 28px;border-radius:999px">${esc(boton.texto)}</a></p>`
+    : '';
+  const html = `<!doctype html><html lang="es"><body style="margin:0;padding:0;background:#FAF8F3">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF8F3"><tr><td align="center" style="padding:28px 14px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #E8E1D3;border-radius:16px"><tr><td style="padding:32px 28px;font-family:Arial,Helvetica,sans-serif">
+<p style="margin:0 0 18px;font-size:13px;font-weight:700;letter-spacing:.04em;color:#A8833F">Academia Eneascoaching</p>
+<h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;color:#1C1A17">${esc(titulo)}</h1>
+${cuerpo}${bot}
+<p style="margin:26px 0 0;padding-top:16px;border-top:1px solid #E8E1D3;font-size:13px;line-height:1.5;color:#6B6458;text-align:center">Cualquier duda, respondé este mail o escribinos por <a href="${esc(urlWhatsapp('Hola! Tengo una consulta sobre la Academia.'))}" style="color:#A8833F">WhatsApp</a>.</p>
+</td></tr></table></td></tr></table></body></html>`;
+  const texto = [titulo, '', ...parrafos, boton ? `\n${boton.texto}: ${boton.url}` : '', '\nAcademia Eneascoaching'].join('\n');
+  return { html, texto };
+}
+
+export async function enviarMail({ to, asunto, titulo, parrafos, boton }) {
+  const destino = String(to || '').trim();
+  if (!/\S+@\S+\.\S+/.test(destino)) return { ok: false };
+  if (env('MAIL_MODO') === 'consola') { console.log(`[mail] ${destino} | ${asunto}`); return { ok: true, simulado: true }; }
+  const proveedor = env('MAIL_PROVEEDOR') === 'brevo' ? 'brevo' : 'resend';
+  const clave = env(proveedor === 'brevo' ? 'BREVO_API_KEY' : 'RESEND_API_KEY');
+  const from = env('MAIL_FROM');
+  if (!clave || !from) return { ok: false, omitido: true };
+  const { html, texto } = plantillaMail({ titulo, parrafos, boton });
+  const responder = env('MAIL_REPLY_TO');
+  try {
+    let r;
+    if (proveedor === 'brevo') {
+      const m = from.match(/^(.*?)\s*<(.+)>$/);
+      r = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST', signal: AbortSignal.timeout(8000),
+        headers: { 'api-key': clave, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: { name: m ? m[1] : 'Academia Eneascoaching', email: m ? m[2] : from }, to: [{ email: destino }], subject: asunto, htmlContent: html, textContent: texto, ...(responder ? { replyTo: { email: responder } } : {}) }),
+      });
+    } else {
+      r = await fetch('https://api.resend.com/emails', {
+        method: 'POST', signal: AbortSignal.timeout(8000),
+        headers: { Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: [destino], subject: asunto, html, text: texto, ...(responder ? { reply_to: responder } : {}) }),
+      });
+    }
+    if (!r.ok) console.error('mail no enviado:', proveedor, r.status, (await r.text().catch(() => '')).slice(0, 200));
+    return { ok: r.ok };
+  } catch (e) {
+    console.error('mail no enviado:', e.message);
+    return { ok: false };
+  }
+}
+
+const primerNombre = (p) => String(p?.nombre || '').trim().split(/\s+/)[0] || '';
+const montoTexto = (pago) => pago.moneda === 'ARS' ? `$ ${numero(pago.monto)}` : `${pago.moneda} ${numero(pago.monto)}`;
+
+const mails = {
+  pagoRecibido: (perfil, pago, mensaje) => enviarMail({
+    to: perfil.email, asunto: `Recibimos tu aviso de pago (${pago.codigo})`, titulo: `Gracias${primerNombre(perfil) ? `, ${primerNombre(perfil)}` : ''}. Recibimos tu aviso`,
+    parrafos: [
+      `Guardamos tu aviso de pago de ${montoTexto(pago)} por ${pago.meses} ${pago.meses === 1 ? 'mes' : 'meses'}. Tu código es ${pago.codigo}.`,
+      'Último paso: mandanos el comprobante por WhatsApp. El mensaje ya lleva tus datos y el código; solo tenés que adjuntar la captura y enviarlo.',
+      'Apenas confirmemos el pago te activamos y te avisamos por acá.',
+    ],
+    boton: { texto: 'Enviar comprobante por WhatsApp', url: urlWhatsapp(mensaje) },
+  }),
+  pagoParaConfirmar: (perfil, pago) => Promise.all(env('MAIL_ADMIN').split(',').map(s => s.trim()).filter(Boolean).map(to => enviarMail({
+    to, asunto: `Nuevo pago para confirmar: ${perfil.nombre} (${pago.codigo})`, titulo: 'Hay un pago para confirmar',
+    parrafos: [`${perfil.nombre} (${perfil.email}) avisó un pago de ${montoTexto(pago)} por ${pago.meses} ${pago.meses === 1 ? 'mes' : 'meses'}.`, `Código: ${pago.codigo}${pago.referencia ? `\nOperación: ${pago.referencia}` : ''}`, 'Cuando llegue el comprobante por WhatsApp, verificá que el dinero haya entrado y confirmalo desde el panel.'],
+    boton: { texto: 'Abrir el panel', url: urlAcademia('/app/admin') },
+  }))),
+  activada: (perfil, vence) => enviarMail({
+    to: perfil.email, asunto: '¡Tu membresía de la Academia está activa!', titulo: `¡Ya sos parte de la Academia${primerNombre(perfil) ? `, ${primerNombre(perfil)}` : ''}!`,
+    parrafos: ['Confirmamos tu pago y tu membresía está activa.', vence ? `Tenés acceso hasta el ${fechaLarga(vence)}.` : 'Ya podés entrar a los cursos, los vivos y la comunidad.', 'Te recomendamos empezar por tu test y presentarte en la comunidad.'],
+    boton: { texto: 'Entrar a la Academia', url: urlAcademia('/app') },
+  }),
+  rechazada: (perfil, pago, motivo) => enviarMail({
+    to: perfil.email, asunto: `No pudimos confirmar tu pago (${pago.codigo})`, titulo: 'No pudimos confirmar tu pago',
+    parrafos: [`Revisamos el pago ${pago.codigo} de ${montoTexto(pago)} y no pudimos confirmarlo.`, `Motivo: ${motivo}`, 'Escribinos por WhatsApp y lo resolvemos juntas, o volvé a avisar el pago desde la Academia.'],
+    boton: { texto: 'Escribir por WhatsApp', url: urlWhatsapp(`Hola! Mi pago ${pago.codigo} no se pudo confirmar. Soy ${perfil.nombre} (${perfil.email}).`) },
+  }),
+  porVencer: (perfil, vence) => enviarMail({
+    to: perfil.email, asunto: `Tu acceso a la Academia vence el ${fechaLarga(vence)}`, titulo: 'Tu acceso está por vencer',
+    parrafos: [`Tu membresía está paga hasta el ${fechaLarga(vence)}.`, 'Para seguir sin cortes, renovala antes de esa fecha. Tu progreso y tus puntos siempre quedan guardados.'],
+    boton: { texto: 'Renovar mi membresía', url: urlAcademia('/app/membresia') },
+  }),
+  pausada: (perfil) => enviarMail({
+    to: perfil.email, asunto: 'Tu membresía de la Academia quedó pausada', titulo: 'Tu membresía quedó pausada',
+    parrafos: ['Como no recibimos la renovación, pausamos tu acceso. No perdés nada: tu progreso y tus puntos quedan guardados.', 'Podés reactivarla cuando quieras.'],
+    boton: { texto: 'Reactivar mi membresía', url: urlAcademia('/app/membresia') },
+  }),
+};
+
+// Para que un aviso automático no se mande dos veces (usa la misma tabla de intentos, sin tablas nuevas)
+async function unaSolaVez(clave) {
+  if (await intentosEn('mail', clave, 60 * 24 * 14) > 0) return false;
+  await anotarIntento('mail', clave);
+  return true;
+}
+
+// Una vez por día (cron de Vercel): avisa a quien vence en 5 días y pausa, con aviso, a quien ya pasó la gracia
+async function avisosDiarios() {
+  const ahora = Date.now();
+  const gracia = 3 * 86400000;
+  const { data: lista } = await sb.from('academia_perfiles').select('id,email,nombre,vence')
+    .eq('rol', 'miembro').eq('estado', 'activa').in('metodo_pago', ['transferencia', 'manual']).not('vence', 'is', null);
+  let porVencer = 0, pausadas = 0;
+  for (const p of lista || []) {
+    const vence = new Date(p.vence).getTime();
+    if (vence + gracia < ahora) {
+      await sb.from('academia_perfiles').update({ estado: 'vencida' }).eq('id', p.id);
+      if (await unaSolaVez(`pausa:${p.id}:${p.vence}`)) { await mails.pausada(p); pausadas += 1; }
+    } else if (vence - ahora <= 5 * 86400000 && await unaSolaVez(`renovar:${p.id}:${p.vence}`)) {
+      await mails.porVencer(p, p.vence); porVencer += 1;
+    }
+  }
+  return { revisadas: (lista || []).length, porVencer, pausadas };
+}
+
 async function leerCrudo(req) {
   if (typeof req.rawBody === 'string') return req.rawBody;
   const partes = [];
@@ -321,7 +447,11 @@ async function lsWebhook(req, res) {
     });
   } else if (evento.startsWith('subscription_')) {
     const cambios = { metodo_pago: 'internacional', ls_subscription_id: String(ev.data?.id || '') };
-    if (['active', 'on_trial', 'past_due'].includes(a.status)) { cambios.estado = 'activa'; cambios.vence = a.renews_at || null; }
+    if (['active', 'on_trial', 'past_due'].includes(a.status)) {
+      cambios.estado = 'activa'; cambios.vence = a.renews_at || null;
+      const { data: antes } = await sb.from('academia_perfiles').select('email,nombre,estado').eq('id', uid).maybeSingle();
+      if (antes && antes.estado !== 'activa') await mails.activada(antes, null);
+    }
     else if (a.status === 'cancelled') { cambios.estado = 'activa'; cambios.vence = a.ends_at || null; } // sigue hasta el fin del período pago
     else if (['expired', 'unpaid', 'paused'].includes(a.status)) cambios.estado = 'vencida';
     await sb.from('academia_perfiles').update(cambios).eq('id', uid);
@@ -538,9 +668,18 @@ export default async function handler(req, res) {
       const uid = pre.external_reference;
       if (uid) {
         const estado = pre.status === 'authorized' ? 'activa' : (['cancelled', 'paused'].includes(pre.status) ? 'vencida' : null);
-        if (estado) await sb.from('academia_perfiles').update({ estado, mp_preapproval_id: pre.id, metodo_pago: 'mercadopago', vence: null }).eq('id', uid);
+        if (estado) {
+          const { data: antes } = await sb.from('academia_perfiles').select('email,nombre,estado').eq('id', uid).maybeSingle();
+          await sb.from('academia_perfiles').update({ estado, mp_preapproval_id: pre.id, metodo_pago: 'mercadopago', vence: null }).eq('id', uid);
+          if (estado === 'activa' && antes && antes.estado !== 'activa') await mails.activada(antes, null);
+        }
       }
       return res.status(200).json({ ok: true });
+    }
+
+    if (action === 'cron-avisos' && m === 'GET') {
+      if (!env('CRON_SECRET') || req.headers.authorization !== `Bearer ${env('CRON_SECRET')}`) return res.status(401).json({ error: 'No autorizado' });
+      return res.status(200).json(await avisosDiarios());
     }
 
     if (action === 'cron-precios-mp' && m === 'GET') {
@@ -680,7 +819,10 @@ export default async function handler(req, res) {
       }
       if (!pago) throw new Error('No se pudo generar el código del pago.');
       if (!yo.precio_usd) await sb.from('academia_perfiles').update({ precio_usd: usd }).eq('id', yo.id);
-      return res.status(200).json({ ok: true, codigo: pago.codigo, mensaje: mensajePago(yo, pago) });
+      const mensaje = mensajePago(yo, pago);
+      await mails.pagoRecibido(yo, pago, mensaje);
+      await mails.pagoParaConfirmar(yo, pago);
+      return res.status(200).json({ ok: true, codigo: pago.codigo, mensaje });
     }
 
     if (action === 'checkout-internacional' && m === 'POST') {
@@ -1012,6 +1154,7 @@ Máximo 280 palabras.`,
         codigo: codigoPago(), nota, revisado_por: yo.id, datos: { nombre: perfil.nombre, email: perfil.email },
       });
       await sb.from('academia_perfiles').update({ estado: 'activa', metodo_pago: metodo === 'internacional' ? 'manual' : 'transferencia', vence }).eq('id', perfil.id);
+      await mails.activada(perfil, vence);
       return res.status(200).json({ ok: true, vence });
     }
 
@@ -1035,10 +1178,12 @@ Máximo 280 palabras.`,
       if (!pago || pago.estado !== 'pendiente') return res.status(400).json({ error: 'Ese pago ya fue revisado.' });
       const nota = String(body.nota || '').trim().slice(0, 300) || null;
       const resumen = { codigo: pago.codigo, monto: pago.monto, moneda: pago.moneda, meses: pago.meses, metodo: pago.metodo, nota };
+      const { data: destino } = await sb.from('academia_perfiles').select('email,nombre').eq('id', pago.usuario_id).single();
       if (body.accion === 'rechazar') {
         if (!nota || nota.length < 3) return res.status(400).json({ error: 'Escribí el motivo del rechazo.' });
         await auditar(req, yo, 'pago_rechazado', pago.usuario_id, resumen);
         await sb.from('academia_pagos').update({ estado: 'rechazado', confirmado: new Date().toISOString(), nota, revisado_por: yo.id }).eq('id', pago.id);
+        if (destino) await mails.rechazada(destino, pago, nota);
         return res.status(200).json({ ok: true });
       }
       await auditar(req, yo, 'pago_confirmado', pago.usuario_id, resumen);
@@ -1047,6 +1192,7 @@ Máximo 280 palabras.`,
       const vence = sumarMeses(desde, pago.meses);
       await sb.from('academia_perfiles').update({ estado: 'activa', metodo_pago: pago.metodo === 'internacional' ? 'manual' : 'transferencia', vence }).eq('id', pago.usuario_id);
       await sb.from('academia_pagos').update({ estado: 'confirmado', confirmado: new Date().toISOString(), nota, revisado_por: yo.id }).eq('id', pago.id);
+      if (destino) await mails.activada(destino, vence);
       return res.status(200).json({ ok: true, vence });
     }
 

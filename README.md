@@ -24,6 +24,12 @@ Membresía de USD 39/mes de Cecilia B. Sánchez para profesionales que usan el E
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio (secreta) |
 | `ACADEMIA_ADMIN_EMAILS` | Solo sirve para crear a la **primera** administradora (si todavía no hay ninguna). Después, los permisos de admin se dan desde el panel, con motivo y registro. Así nadie puede quedarse con el rol registrándose con un email ajeno |
 | `ACADEMIA_URL` | URL pública de la academia (para volver de Mercado Pago y del mail de contraseña) |
+| `RESEND_API_KEY` (o `BREVO_API_KEY` con `MAIL_PROVEEDOR=brevo`) | Clave del servicio de envío de mails. Sin ella, la plataforma funciona igual pero no manda mails |
+| `MAIL_FROM` | Remitente con el dominio verificado, por ejemplo `Academia Eneascoaching <academia@cecimentorcoach.com>` |
+| `MAIL_REPLY_TO` | Opcional. A dónde llegan las respuestas de las personas |
+| `MAIL_ADMIN` | Opcional. Emails (separados por coma) que reciben el aviso de cada pago nuevo para confirmar |
+| `MAIL_MODO` | `consola` imprime los mails en el registro del servidor en lugar de enviarlos. Solo para pruebas |
+| `WHATSAPP_NUMERO` | Número de WhatsApp para los botones de los mails (por defecto el mismo de `VITE_WHATSAPP`) |
 | `ADMIN_MFA` | `off` apaga la exigencia de verificación en dos pasos del panel. Solo para emergencias (por ejemplo, si se pierde el celular y no hay otra administradora); volver a quitarla enseguida |
 | `VITE_WHATSAPP` | Número de WhatsApp con código de país y sin signos (por defecto el de Cecilia). Recibe los comprobantes y las consultas |
 | `MP_ACCESS_TOKEN` | Token de Mercado Pago. Sin él, el botón de pago deriva a WhatsApp |
@@ -57,3 +63,9 @@ Publicar +3, comentar +1, me gusta recibido +1, lección completada +2, práctic
 - **Reglas de roles**: nadie cambia su propio rol y siempre queda al menos una administradora.
 - **Encabezados** (`vercel.json`): política de contenido, HSTS, no se puede abrir dentro de otra página y sin caché en la API.
 - Las claves secretas viven solo en el servidor y las tablas tienen RLS sin políticas: el navegador nunca habla con la base.
+
+## Mails automáticos
+
+Mails transaccionales: aviso de pago recibido (con el botón para mandar el comprobante por WhatsApp), pago confirmado o rechazado, alta manual, aviso 5 días antes de vencer y membresía pausada. Los avisos de vencimiento los manda un cron diario de Vercel (`cron-avisos`, necesita `CRON_SECRET`) que además pausa a quien pasó los 3 días de gracia. Un mail que falla nunca frena un pago ni un alta.
+
+Para que los mails de Supabase (recuperar contraseña) no tengan el tope de 2 por hora, configurar el mismo proveedor como SMTP en Supabase: Authentication > Emails > SMTP Settings.
