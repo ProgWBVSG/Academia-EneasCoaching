@@ -466,10 +466,10 @@ export default function Landing() {
           <span className="md:whitespace-nowrap">Comprender al otro</span><br />
           <span className="text-oro md:whitespace-nowrap">comienza por comprenderte a vos.</span>
         </h1>
-        <p className="text-lg md:text-xl text-tinta font-semibold -mt-2">Mirá el video: en menos de cinco minutos vas a entender cómo.</p>
+        <p className="text-lg md:text-xl text-tinta font-semibold -mt-2 max-w-3xl">Cómo mejorar tus vínculos con tu familia, en tu trabajo, con tu equipo y con vos mismo.</p>
         <div className="w-full max-w-4xl"><VideoCecilia /></div>
         <p className="text-lg md:text-xl text-gris max-w-2xl">
-          Cómo mejorar tus vínculos con tu familia, en tu trabajo, con tu equipo y con vos mismo.
+          El Eneagrama aplicado a tu trabajo y a tu vida.
         </p>
         <div className="flex flex-col sm:flex-row justify-center items-stretch gap-3 w-full sm:w-auto">
           <Link to={cta} className="btn btn-oro btn-grande">Quiero sumarme por {mensual} al mes <ArrowRight className="w-5 h-5" /></Link>
