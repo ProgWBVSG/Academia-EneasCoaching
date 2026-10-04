@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Error } from '../components/ui';
 import { IconoWhatsApp } from '../pages/Landing';
+import { wa } from '../lib/contacto';
 
 // Pantalla para activar o renovar la membresía.
 // Argentina: débito automático con Mercado Pago o transferencia (sin comisión, se confirma a mano).
@@ -13,10 +14,10 @@ type Opciones = {
   usd: number; ars: number | null; mp: boolean; internacional: boolean; internacionalManual: { westernUnion?: { nombre: string; pais: string; ciudad?: string } | null; paypal?: string; instrucciones?: string } | null;
   transferencia: { alias?: string; cbu?: string; titular?: string; banco?: string; cuit?: string } | null;
   metodo: string | null; vence: string | null;
-  pendiente: { meses: number; monto: number; moneda: string; creado: string } | null;
+  pendiente: { meses: number; monto: number; moneda: string; creado: string; codigo: string; mensaje: string } | null;
 };
 
-const WHATSAPP = (texto: string) => 'https://wa.me/5493515632496?text=' + encodeURIComponent(texto);
+const WHATSAPP = wa;
 const pesos = (n: number) => `$ ${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(n)}`;
 const enArgentina = () => {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
@@ -36,6 +37,22 @@ function Copiar({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
+// Después de avisar: el código del pago y el botón que abre WhatsApp con todos los datos escritos
+function AvisoEnviado({ datos }: { datos: { codigo: string; mensaje: string } | null }) {
+  const { perfil } = useAuth();
+  return (
+    <div className="tarjeta p-5 flex flex-col items-center gap-3">
+      <Check className="w-7 h-7 text-oro" />
+      <p className="font-bold">¡Gracias! Guardamos tu aviso.</p>
+      {datos && <p className="text-sm text-gris">Tu código es <strong className="text-tinta tabular-nums">{datos.codigo}</strong>.</p>}
+      <p className="text-sm text-gris">Último paso: mandanos el comprobante por WhatsApp. El mensaje ya lleva tus datos (nombre, email, monto y código): solo adjuntá la captura del comprobante en el chat y enviá.</p>
+      <a href={wa(datos?.mensaje || `Hola! Ya pagué la Academia. Soy ${perfil?.nombre} (${perfil?.email}). Te mando el comprobante.`)}
+        target="_blank" rel="noopener noreferrer" className="btn btn-whatsapp btn-grande w-full"><IconoWhatsApp className="w-5 h-5" /> Enviar comprobante por WhatsApp</a>
+      <p className="text-xs text-gris">Te activamos apenas confirmemos el pago.</p>
+    </div>
+  );
+}
+
 export default function Membresia({ renovar = false }: { renovar?: boolean }) {
   const { perfil } = useAuth();
   const [op, setOp] = useState<Opciones | null>(null);
@@ -46,11 +63,12 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
   const [cargando, setCargando] = useState('');
   const [error, setError] = useState('');
   const [avisado, setAvisado] = useState<'ARS' | 'USD' | null>(null);
+  const [datosAviso, setDatosAviso] = useState<{ codigo: string; mensaje: string } | null>(null);
 
   useEffect(() => {
     api<Opciones>('pago-opciones').then(o => {
       setOp(o);
-      if (o.pendiente) setAvisado(o.pendiente.moneda === 'USD' ? 'USD' : 'ARS');
+      if (o.pendiente) { setAvisado(o.pendiente.moneda === 'USD' ? 'USD' : 'ARS'); setDatosAviso({ codigo: o.pendiente.codigo, mensaje: o.pendiente.mensaje }); }
       if (o.metodo === 'transferencia') setMetodo('transferencia');
       if (o.internacionalManual?.westernUnion) setMeses(3);
       if (!o.mp && o.transferencia) setMetodo('transferencia');
@@ -68,7 +86,8 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
   const avisar = async (via: 'local' | 'internacional' = 'local') => {
     setCargando(via === 'internacional' ? 'intl-aviso' : 'transferencia'); setError('');
     try {
-      await api('transferencia-aviso', { method: 'POST', body: { meses, referencia, via } });
+      const r = await api<{ codigo: string; mensaje: string }>('transferencia-aviso', { method: 'POST', body: { meses, referencia, via } });
+      setDatosAviso({ codigo: r.codigo, mensaje: r.mensaje });
       setAvisado(via === 'internacional' ? 'USD' : 'ARS');
     } catch (e: any) { setError(e.message); }
     setCargando('');
@@ -131,13 +150,7 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
 
               {metodo === 'transferencia' && op.transferencia && (
                 avisado === 'ARS' ? (
-                  <div className="tarjeta p-5 flex flex-col items-center gap-3">
-                    <Check className="w-7 h-7 text-oro" />
-                    <p className="font-bold">¡Gracias! Recibimos tu aviso.</p>
-                    <p className="text-sm text-gris">Te activamos en cuanto confirmemos la transferencia. Si querés que sea más rápido, mandanos el comprobante por WhatsApp.</p>
-                    <a href={WHATSAPP(`Hola! Hice la transferencia para la Academia. Soy ${perfil?.nombre} (${perfil?.email}). Te mando el comprobante.`)}
-                      target="_blank" rel="noopener noreferrer" className="btn btn-whatsapp w-full"><IconoWhatsApp className="w-5 h-5" /> Enviar comprobante</a>
-                  </div>
+                  <AvisoEnviado datos={datosAviso} />
                 ) : (
                   <div className="tarjeta p-5 flex flex-col items-center gap-4">
                     <div role="group" aria-label="Meses" className="inline-flex rounded-full p-1 bg-oro-suave text-sm font-semibold">
@@ -192,13 +205,7 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
                 </button>
               ) : op.internacionalManual ? (
                 avisado === 'USD' ? (
-                  <div className="tarjeta p-5 flex flex-col items-center gap-3">
-                    <Check className="w-7 h-7 text-oro" />
-                    <p className="font-bold">¡Gracias! Recibimos tu aviso.</p>
-                    <p className="text-sm text-gris">Te activamos en cuanto confirmemos el pago. Si querés que sea más rápido, mandanos el comprobante por WhatsApp.</p>
-                    <a href={WHATSAPP(`Hola! Hice el pago internacional de la Academia. Soy ${perfil?.nombre} (${perfil?.email}). Te mando el comprobante.`)}
-                      target="_blank" rel="noopener noreferrer" className="btn btn-whatsapp w-full"><IconoWhatsApp className="w-5 h-5" /> Enviar comprobante</a>
-                  </div>
+                  <AvisoEnviado datos={datosAviso} />
                 ) : (
                   <div className="tarjeta p-5 flex flex-col items-center gap-4">
                     <div role="group" aria-label="Meses" className="inline-flex rounded-full p-1 bg-oro-suave text-sm font-semibold">

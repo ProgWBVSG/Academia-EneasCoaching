@@ -40,9 +40,65 @@ function sesionPublica(s) {
   return { access_token: s.access_token, refresh_token: s.refresh_token, expires_at: s.expires_at };
 }
 
+// ── Seguridad ─────────────────────────────────────────────────────────
+const ipDe = (req) => String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim().slice(0, 64) || null;
+const uaDe = (req) => String(req.headers['user-agent'] || '').slice(0, 200) || null;
+const tokenDe = (req) => { const h = req.headers.authorization || ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; };
+
+// Nivel de verificación de la sesión (aal1 = solo contraseña, aal2 = con código). Solo se lee de un token que
+// Supabase ya validó con getUser.
+function aalDe(req) {
+  try {
+    const p = tokenDe(req).split('.')[1];
+    return JSON.parse(Buffer.from(p, 'base64url').toString('utf8')).aal || 'aal1';
+  } catch { return 'aal1'; }
+}
+const mfaObligatoria = () => env('ADMIN_MFA') !== 'off';
+
+// Límite de intentos: cuenta en la base, así vale aunque la función corra en varias instancias
+async function intentosEn(tipo, clave, minutos) {
+  const desde = new Date(Date.now() - minutos * 60000).toISOString();
+  const { count } = await sb.from('academia_intentos').select('id', { count: 'exact', head: true })
+    .eq('tipo', tipo).eq('clave', clave).gte('creado', desde);
+  return count || 0;
+}
+async function anotarIntento(tipo, ...claves) {
+  await sb.from('academia_intentos').insert(claves.filter(Boolean).map(clave => ({ tipo, clave })));
+  if (Math.random() < 0.02) await sb.from('academia_intentos').delete().lt('creado', new Date(Date.now() - 2 * 86400000).toISOString());
+}
+const demasiados = (res) => res.status(429).json({ error: 'Demasiados intentos. Probá de nuevo en unos minutos.' });
+
+// Registro de actividad. Si no se puede escribir, la acción no se hace.
+async function auditar(req, actor, accion, objetivo = null, detalle = {}) {
+  const { error } = await sb.from('academia_auditoria').insert({
+    actor_id: actor?.id || null, actor_email: actor?.email || null, accion,
+    objetivo: objetivo ? String(objetivo).slice(0, 120) : null, detalle, ip: ipDe(req), ua: uaDe(req),
+  });
+  if (error) {
+    console.error('auditoría:', error.message);
+    const e = new Error('No se pudo registrar la actividad. No se hizo ningún cambio.'); e.status = 500; throw e;
+  }
+}
+
+// Llamadas a la API de autenticación de Supabase con la sesión de la persona
+async function gotrue(path, token, opts = {}) {
+  const r = await fetch(`${env('SUPABASE_URL')}/auth/v1${path}`, {
+    ...opts, headers: { apikey: env('SUPABASE_SERVICE_ROLE_KEY'), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  });
+  return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+}
+async function factoresDe(token) {
+  const { data } = await gotrue('/user', token);
+  return (data.factors || []).filter(f => f.factor_type === 'totp');
+}
+
+const hayAdmin = async () => ((await sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('rol', 'admin')).count || 0) > 0;
+
+// El email de ADMIN_EMAILS solo sirve para crear a la primera administradora. Después, los permisos
+// se dan desde el panel: así nadie puede quedarse con un rol de admin registrándose con un email ajeno.
 async function asegurarPerfil(user, extra = {}) {
   const email = (user.email || '').toLowerCase();
-  const esAdmin = adminEmails().includes(email);
+  const esAdmin = adminEmails().includes(email) && !(await hayAdmin());
   let { data: perfil } = await sb.from('academia_perfiles').select('*').eq('id', user.id).maybeSingle();
   if (!perfil) {
     const { data } = await sb.from('academia_perfiles').insert({
@@ -53,9 +109,6 @@ async function asegurarPerfil(user, extra = {}) {
       rol: esAdmin ? 'admin' : 'miembro',
       estado: esAdmin ? 'activa' : 'pendiente',
     }).select('*').single();
-    perfil = data;
-  } else if (esAdmin && (perfil.rol !== 'admin' || perfil.estado !== 'activa')) {
-    const { data } = await sb.from('academia_perfiles').update({ rol: 'admin', estado: 'activa' }).eq('id', user.id).select('*').single();
     perfil = data;
   }
   return perfil;
@@ -213,6 +266,30 @@ function datosInternacionalManual() {
     : null;
   const d = { westernUnion: wu, paypal: env('INTL_PAYPAL_URL'), instrucciones: env('INTL_INSTRUCCIONES').replace(/\n/g, '\n') };
   return d.westernUnion || d.paypal || d.instrucciones ? d : null;
+}
+
+// Código corto para reconocer cada pago en WhatsApp y en el panel
+const ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const codigoPago = () => 'AC-' + Array.from(crypto.randomBytes(6), b => ALFABETO[b % ALFABETO.length]).join('');
+const numero = (n) => new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(n);
+
+// Mensaje que la persona le manda a la administradora con todos sus datos; el comprobante lo adjunta en el chat
+function mensajePago(perfil, pago) {
+  const intl = pago.metodo === 'internacional';
+  const monto = pago.moneda === 'ARS' ? `$ ${numero(pago.monto)}` : `${pago.moneda} ${numero(pago.monto)}`;
+  return [
+    `Hola! Ya ${intl ? 'envié el pago' : 'transferí'} de la Academia Eneascoaching.`,
+    '',
+    `Código: ${pago.codigo}`,
+    `Nombre: ${perfil.nombre}`,
+    `Email: ${perfil.email}`,
+    perfil.profesion ? `Profesión: ${perfil.profesion}` : null,
+    perfil.pais ? `País: ${perfil.pais}` : null,
+    `Monto: ${monto} (${pago.meses} ${pago.meses === 1 ? 'mes' : 'meses'})`,
+    pago.referencia ? `${intl && env('INTL_WU_NOMBRE') ? 'MTCN' : 'Operación'}: ${pago.referencia}` : null,
+    '',
+    'Te mando el comprobante a continuación.',
+  ].filter(linea => linea !== null).join('\n');
 }
 
 async function leerCrudo(req) {
@@ -408,6 +485,8 @@ export default async function handler(req, res) {
       if (!/\S+@\S+\.\S+/.test(email)) return res.status(400).json({ error: 'Ingresá un email válido.' });
       if (password.length < 8) return res.status(400).json({ error: 'La contraseña tiene que tener al menos 8 caracteres.' });
       if (!nombre) return res.status(400).json({ error: 'Ingresá tu nombre.' });
+      if (await intentosEn('registro', `ip:${ipDe(req)}`, 60) >= 10) return demasiados(res);
+      await anotarIntento('registro', `ip:${ipDe(req)}`);
 
       const { data: creado, error } = await sb.auth.admin.createUser({
         email, password, email_confirm: true, user_metadata: { nombre },
@@ -423,11 +502,18 @@ export default async function handler(req, res) {
     }
 
     if (action === 'entrar' && m === 'POST') {
-      const { data, error } = await clienteAuth().auth.signInWithPassword({
-        email: String(body.email || '').trim().toLowerCase(), password: String(body.password || ''),
-      });
-      if (error) return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
-      await asegurarPerfil(data.user);
+      const email = String(body.email || '').trim().toLowerCase();
+      const ip = ipDe(req);
+      if (await intentosEn('login', `email:${email}`, 15) >= 8 || await intentosEn('login', `ip:${ip}`, 15) >= 30) return demasiados(res);
+      const { data, error } = await clienteAuth().auth.signInWithPassword({ email, password: String(body.password || '') });
+      if (error) {
+        await anotarIntento('login', `email:${email}`, `ip:${ip}`);
+        const { data: existe } = await sb.from('academia_perfiles').select('id,email,rol').eq('email', email).maybeSingle();
+        if (existe?.rol === 'admin') await auditar(req, existe, 'login_fallido');
+        return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+      }
+      const perfil = await asegurarPerfil(data.user);
+      if (perfil?.rol === 'admin') await auditar(req, perfil, 'login');
       return res.status(200).json({ sesion: sesionPublica(data.session) });
     }
 
@@ -482,11 +568,62 @@ export default async function handler(req, res) {
     // ── Requieren sesión ───────────────────────────────────────────
     const yo = await usuarioDe(req);
     if (!yo) return res.status(401).json({ error: 'Tu sesión venció. Volvé a ingresar.' });
-    const esAdmin = yo.rol === 'admin';
+    // Una administradora solo tiene poderes de admin con la sesión verificada con código (aal2)
+    const token = tokenDe(req);
+    const aal = aalDe(req);
+    const esAdminRol = yo.rol === 'admin';
+    const esAdmin = esAdminRol && (!mfaObligatoria() || aal === 'aal2');
     const nivel = nivelDe(yo.puntos);
 
     if (action === 'yo' && m === 'GET') {
       return res.status(200).json({ perfil: yo, nivel, niveles: NIVELES, onboarding: await onboardingDe(yo) });
+    }
+
+    // ── Verificación en dos pasos (solo administradoras) ───────────
+    if (action === 'mfa-estado' && m === 'GET') {
+      if (!esAdminRol) return res.status(403).json({ error: 'Solo administradoras.' });
+      const f = await factoresDe(token);
+      const ok = f.filter(x => x.status === 'verified');
+      return res.status(200).json({ obligatoria: mfaObligatoria(), aal, verificados: ok.length, factores: ok.map(x => ({ id: x.id })) });
+    }
+
+    if (action === 'mfa-enrolar' && m === 'POST') {
+      if (!esAdminRol) return res.status(403).json({ error: 'Solo administradoras.' });
+      const factores = await factoresDe(token);
+      if (factores.some(f => f.status === 'verified') && aal !== 'aal2') {
+        return res.status(403).json({ error: 'Para agregar otro dispositivo, primero verificá con tu código actual.', mfa: 'verificar' });
+      }
+      // Los intentos de configuración que quedaron a medias se descartan
+      for (const f of factores.filter(x => x.status !== 'verified')) await gotrue(`/factors/${f.id}`, token, { method: 'DELETE' });
+      const r = await gotrue('/factors', token, { method: 'POST', body: JSON.stringify({ factor_type: 'totp', friendly_name: `Academia ${Date.now()}`, issuer: 'Academia Eneascoaching' }) });
+      if (!r.ok) return res.status(502).json({ error: 'No pudimos iniciar la verificación en dos pasos. Probá de nuevo.' });
+      await auditar(req, yo, 'mfa_inicio');
+      // Supabase entrega el QR como SVG crudo: lo convertimos en una imagen que el navegador pueda mostrar
+      const svg = r.data.totp?.qr_code || '';
+      const qr = svg.startsWith('data:') ? svg : `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+      return res.status(200).json({ factor_id: r.data.id, qr, secreto: r.data.totp?.secret });
+    }
+
+    if (action === 'mfa-verificar' && m === 'POST') {
+      if (!esAdminRol) return res.status(403).json({ error: 'Solo administradoras.' });
+      if (await intentosEn('mfa', `user:${yo.id}`, 10) >= 6) return demasiados(res);
+      const codigo = String(body.codigo || '').replace(/\s/g, '');
+      if (!/^\d{6}$/.test(codigo) || !body.factor_id) return res.status(400).json({ error: 'Ingresá el código de 6 dígitos de tu aplicación.' });
+      const ch = await gotrue(`/factors/${encodeURIComponent(body.factor_id)}/challenge`, token, { method: 'POST', body: '{}' });
+      const v = ch.ok ? await gotrue(`/factors/${encodeURIComponent(body.factor_id)}/verify`, token, { method: 'POST', body: JSON.stringify({ challenge_id: ch.data.id, code: codigo }) }) : null;
+      if (!v?.ok) {
+        await anotarIntento('mfa', `user:${yo.id}`);
+        await auditar(req, yo, 'mfa_fallido');
+        return res.status(400).json({ error: 'El código no es correcto. Revisá que sea el que muestra la aplicación ahora.' });
+      }
+      await auditar(req, yo, 'mfa_ok');
+      return res.status(200).json({ sesion: { access_token: v.data.access_token, refresh_token: v.data.refresh_token, expires_at: Math.floor(Date.now() / 1000) + (v.data.expires_in || 3600) } });
+    }
+
+    if (action === 'sesiones-cerrar' && m === 'POST') {
+      await sb.auth.admin.signOut(token, 'global');
+      if (esAdminRol) await auditar(req, yo, 'sesiones_cerradas');
+      return res.status(200).json({ ok: true });
     }
 
     if (action === 'perfil' && m === 'PUT') {
@@ -506,7 +643,7 @@ export default async function handler(req, res) {
     if (action === 'pago-opciones' && m === 'GET') {
       const usd = await precioUsdDe(yo);
       const ars = await precioArs(usd);
-      const { data: pendiente } = await sb.from('academia_pagos').select('id,meses,monto,moneda,creado')
+      const { data: pendiente } = await sb.from('academia_pagos').select('id,meses,monto,moneda,creado,codigo,metodo,referencia')
         .eq('usuario_id', yo.id).eq('estado', 'pendiente').order('creado', { ascending: false }).limit(1);
       return res.status(200).json({
         usd, ars,
@@ -515,7 +652,7 @@ export default async function handler(req, res) {
         internacionalManual: datosInternacionalManual(),
         transferencia: datosTransferencia(),
         metodo: yo.metodo_pago || null, vence: yo.vence || null,
-        pendiente: pendiente?.[0] || null,
+        pendiente: pendiente?.[0] ? { ...pendiente[0], mensaje: mensajePago(yo, pendiente[0]) } : null,
       });
     }
 
@@ -529,13 +666,21 @@ export default async function handler(req, res) {
       if (!unidad) return res.status(503).json({ error: 'No pudimos calcular el precio en pesos. Probá en unos minutos.' });
       const meses = [1, 3].includes(Number(body.meses)) ? Number(body.meses) : 1;
       const metodo = internacional ? 'internacional' : 'transferencia';
+      if (await intentosEn('aviso', `user:${yo.id}`, 60) >= 10) return demasiados(res);
+      await anotarIntento('aviso', `user:${yo.id}`);
       await sb.from('academia_pagos').delete().eq('usuario_id', yo.id).eq('estado', 'pendiente').eq('metodo', metodo);
-      await sb.from('academia_pagos').insert({
-        usuario_id: yo.id, metodo, monto: unidad * meses, moneda: internacional ? 'USD' : 'ARS', meses,
-        referencia: String(body.referencia || '').trim().slice(0, 80) || null,
-      });
+      let pago = null;
+      for (let i = 0; i < 4 && !pago; i++) {
+        const { data, error } = await sb.from('academia_pagos').insert({
+          usuario_id: yo.id, metodo, monto: unidad * meses, moneda: internacional ? 'USD' : 'ARS', meses,
+          referencia: String(body.referencia || '').trim().slice(0, 80) || null, codigo: codigoPago(),
+          datos: { nombre: yo.nombre, email: yo.email, profesion: yo.profesion, pais: yo.pais },
+        }).select('*').single();
+        if (!error) pago = data; else if (error.code !== '23505') throw error;
+      }
+      if (!pago) throw new Error('No se pudo generar el código del pago.');
       if (!yo.precio_usd) await sb.from('academia_perfiles').update({ precio_usd: usd }).eq('id', yo.id);
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, codigo: pago.codigo, mensaje: mensajePago(yo, pago) });
     }
 
     if (action === 'checkout-internacional' && m === 'POST') {
@@ -808,7 +953,67 @@ Máximo 280 palabras.`,
     }
 
     // ── Administración ─────────────────────────────────────────────
-    if (action.startsWith('admin-') && !esAdmin) return res.status(403).json({ error: 'Solo administradoras.' });
+    if (action.startsWith('admin-')) {
+      if (!esAdminRol) return res.status(403).json({ error: 'Solo administradoras.' });
+      if (!esAdmin) {
+        const f = await factoresDe(token);
+        return res.status(403).json({ error: 'Falta la verificación en dos pasos.', mfa: f.some(x => x.status === 'verified') ? 'verificar' : 'enrolar' });
+      }
+      // Todo cambio hecho desde el panel queda registrado antes de ejecutarse (los más delicados lo hacen con más detalle abajo)
+      const CON_DETALLE = ['admin-pago', 'admin-alta', 'admin-miembro'];
+      if (m !== 'GET' && !CON_DETALLE.includes(action)) await auditar(req, yo, `${action}:${m}`, body?.id || req.query.id || null);
+    }
+
+    if (action === 'admin-sesion' && m === 'GET') {
+      return res.status(200).json({ ok: true, email: yo.email, aal });
+    }
+
+    if (action === 'admin-resumen' && m === 'GET') {
+      const ahora = new Date();
+      const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
+      const en7 = new Date(ahora.getTime() + 7 * 86400000).toISOString();
+      const hace7 = new Date(ahora.getTime() - 7 * 86400000).toISOString();
+      const cuenta = (q) => q.then(r => r.count || 0);
+      const [activas, total, nuevas, pendientes, porVencer, pagosMes] = await Promise.all([
+        cuenta(sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('rol', 'miembro').eq('estado', 'activa')),
+        cuenta(sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('rol', 'miembro')),
+        cuenta(sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('rol', 'miembro').gte('creado', hace7)),
+        cuenta(sb.from('academia_pagos').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente')),
+        cuenta(sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('rol', 'miembro').eq('estado', 'activa').in('metodo_pago', ['transferencia', 'manual']).lte('vence', en7)),
+        sb.from('academia_pagos').select('monto,moneda').eq('estado', 'confirmado').gte('confirmado', inicioMes).then(r => r.data || []),
+      ]);
+      const ingresos = {};
+      for (const p of pagosMes) ingresos[p.moneda] = (ingresos[p.moneda] || 0) + Number(p.monto);
+      return res.status(200).json({ activas, total, nuevas, pendientes, porVencer, ingresos, cupoRestante: Math.max(0, CUPO_LANZAMIENTO - activas) });
+    }
+
+    if (action === 'admin-auditoria' && m === 'GET') {
+      let q = sb.from('academia_auditoria').select('*').order('id', { ascending: false }).limit(150);
+      if (req.query.accion) q = q.ilike('accion', `%${String(req.query.accion).replace(/[%_]/g, '')}%`);
+      const { data } = await q;
+      return res.status(200).json(data || []);
+    }
+
+    if (action === 'admin-alta' && m === 'POST') {
+      const email = String(body.email || '').trim().toLowerCase();
+      const nota = String(body.nota || '').trim();
+      const meses = [1, 3, 6, 12].includes(Number(body.meses)) ? Number(body.meses) : 1;
+      const monto = Number(body.monto);
+      const moneda = ['ARS', 'USD'].includes(body.moneda) ? body.moneda : 'ARS';
+      if (!email || nota.length < 3 || !(monto >= 0)) return res.status(400).json({ error: 'Completá el email, el monto y el motivo del alta.' });
+      const { data: perfil } = await sb.from('academia_perfiles').select('id,email,nombre,vence,estado,rol').eq('email', email).maybeSingle();
+      if (!perfil) return res.status(404).json({ error: 'No hay una cuenta con ese email. La persona tiene que registrarse primero.' });
+      const metodo = moneda === 'USD' ? 'internacional' : 'transferencia';
+      const desde = perfil.vence && new Date(perfil.vence) > new Date() ? perfil.vence : new Date().toISOString();
+      const vence = sumarMeses(desde, meses);
+      await auditar(req, yo, 'alta_manual', perfil.email, { monto, moneda, meses, nota, antes: { estado: perfil.estado, vence: perfil.vence } });
+      await sb.from('academia_pagos').insert({
+        usuario_id: perfil.id, metodo, monto, moneda, meses, estado: 'confirmado', confirmado: new Date().toISOString(),
+        codigo: codigoPago(), nota, revisado_por: yo.id, datos: { nombre: perfil.nombre, email: perfil.email },
+      });
+      await sb.from('academia_perfiles').update({ estado: 'activa', metodo_pago: metodo === 'internacional' ? 'manual' : 'transferencia', vence }).eq('id', perfil.id);
+      return res.status(200).json({ ok: true, vence });
+    }
 
     if (action === 'admin-sembrar' && m === 'POST') {
       return res.status(200).json(await sembrar(yo.id));
@@ -820,23 +1025,28 @@ Máximo 280 palabras.`,
     }
 
     if (action === 'admin-pagos' && m === 'GET') {
-      const { data } = await sb.from('academia_pagos').select('*, perfil:academia_perfiles(nombre,email,vence)')
-        .order('creado', { ascending: false }).limit(60);
+      const { data } = await sb.from('academia_pagos').select('*, perfil:academia_perfiles(nombre,email,profesion,pais,vence,estado)')
+        .order('creado', { ascending: false }).limit(200);
       return res.status(200).json(data || []);
     }
 
     if (action === 'admin-pago' && m === 'PUT') {
       const { data: pago } = await sb.from('academia_pagos').select('*').eq('id', body.id).maybeSingle();
       if (!pago || pago.estado !== 'pendiente') return res.status(400).json({ error: 'Ese pago ya fue revisado.' });
+      const nota = String(body.nota || '').trim().slice(0, 300) || null;
+      const resumen = { codigo: pago.codigo, monto: pago.monto, moneda: pago.moneda, meses: pago.meses, metodo: pago.metodo, nota };
       if (body.accion === 'rechazar') {
-        await sb.from('academia_pagos').update({ estado: 'rechazado', confirmado: new Date().toISOString() }).eq('id', pago.id);
+        if (!nota || nota.length < 3) return res.status(400).json({ error: 'Escribí el motivo del rechazo.' });
+        await auditar(req, yo, 'pago_rechazado', pago.usuario_id, resumen);
+        await sb.from('academia_pagos').update({ estado: 'rechazado', confirmado: new Date().toISOString(), nota, revisado_por: yo.id }).eq('id', pago.id);
         return res.status(200).json({ ok: true });
       }
+      await auditar(req, yo, 'pago_confirmado', pago.usuario_id, resumen);
       const { data: perfil } = await sb.from('academia_perfiles').select('vence').eq('id', pago.usuario_id).single();
       const desde = perfil?.vence && new Date(perfil.vence) > new Date() ? perfil.vence : new Date().toISOString();
       const vence = sumarMeses(desde, pago.meses);
       await sb.from('academia_perfiles').update({ estado: 'activa', metodo_pago: pago.metodo === 'internacional' ? 'manual' : 'transferencia', vence }).eq('id', pago.usuario_id);
-      await sb.from('academia_pagos').update({ estado: 'confirmado', confirmado: new Date().toISOString() }).eq('id', pago.id);
+      await sb.from('academia_pagos').update({ estado: 'confirmado', confirmado: new Date().toISOString(), nota, revisado_por: yo.id }).eq('id', pago.id);
       return res.status(200).json({ ok: true, vence });
     }
 
@@ -844,6 +1054,20 @@ Máximo 280 palabras.`,
       const cambios = {};
       if (['pendiente', 'activa', 'vencida'].includes(body.estado)) cambios.estado = body.estado;
       if (['miembro', 'admin'].includes(body.rol)) cambios.rol = body.rol;
+      const nota = String(body.nota || '').trim().slice(0, 300);
+      if (!Object.keys(cambios).length) return res.status(400).json({ error: 'No hay nada para cambiar.' });
+      if (nota.length < 3) return res.status(400).json({ error: 'Escribí el motivo del cambio.' });
+      const { data: antes } = await sb.from('academia_perfiles').select('id,email,estado,rol').eq('id', body.id).maybeSingle();
+      if (!antes) return res.status(404).json({ error: 'No encontramos a esa persona.' });
+      if (cambios.rol && cambios.rol !== antes.rol) {
+        if (antes.id === yo.id) return res.status(400).json({ error: 'No podés cambiar tu propio rol. Pedile a otra administradora.' });
+        if (antes.rol === 'admin' && cambios.rol === 'miembro') {
+          const { count } = await sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('rol', 'admin');
+          if ((count || 0) <= 1) return res.status(400).json({ error: 'Tiene que quedar al menos una administradora.' });
+        }
+      }
+      await auditar(req, yo, cambios.rol && cambios.rol !== antes.rol ? 'rol_cambiado' : 'estado_cambiado', antes.email,
+        { antes: { estado: antes.estado, rol: antes.rol }, despues: cambios, nota });
       await sb.from('academia_perfiles').update(cambios).eq('id', body.id);
       return res.status(200).json({ ok: true });
     }

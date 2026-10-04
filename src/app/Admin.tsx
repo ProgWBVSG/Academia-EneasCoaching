@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import type { Curso, Evento, Leccion, Modulo, Perfil } from '../lib/tipos';
 import { Campo, Cargando, Error, Modal, Vacio } from '../components/ui';
+import Puerta from './admin/Puerta';
+import Resumen from './admin/Resumen';
+import PagosPanel from './admin/PagosPanel';
+import Seguridad from './admin/Seguridad';
 
-type Tab = 'miembros' | 'pagos' | 'cursos' | 'eventos';
+type Tab = 'resumen' | 'pagos' | 'miembros' | 'cursos' | 'eventos' | 'seguridad';
 
 // ── Miembros ────────────────────────────────────────────────────────
 function Miembros() {
@@ -15,14 +19,29 @@ function Miembros() {
   const cargar = useCallback(() => api<Perfil[]>('admin-miembros').then(setLista), []);
   useEffect(() => { cargar(); }, [cargar]);
 
-  const cambiar = async (id: string, cambios: Partial<Perfil>) => {
-    setLista(l => l?.map(p => p.id === id ? { ...p, ...cambios } : p) || null);
-    await api('admin-miembro', { method: 'PUT', body: { id, ...cambios } });
+  const [pendiente, setPendiente] = useState<{ p: Perfil; cambios: Partial<Perfil> } | null>(null);
+  const [q, setQ] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
+
+  // Cambiar el estado o el rol es una operación delicada: pide un motivo y queda en el registro de actividad
+  const confirmar = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!pendiente) return;
+    setGuardando(true); setError('');
+    try {
+      await api('admin-miembro', { method: 'PUT', body: { id: pendiente.p.id, ...pendiente.cambios, nota: motivo } });
+      setPendiente(null); setMotivo(''); await cargar();
+    } catch (e: any) { setError(e.message); }
+    setGuardando(false);
   };
 
   if (!lista) return <Cargando />;
   const cuenta = (e: Perfil['estado']) => lista.filter(p => p.estado === e).length;
-  const visibles = filtro === 'todas' ? lista : lista.filter(p => p.estado === filtro);
+  const t = q.trim().toLowerCase();
+  const visibles = (filtro === 'todas' ? lista : lista.filter(p => p.estado === filtro))
+    .filter(p => !t || [p.nombre, p.email, p.profesion, p.pais].some(v => v?.toLowerCase().includes(t)));
 
   return (
     <div className="flex flex-col gap-4">
@@ -31,7 +50,8 @@ function Miembros() {
           <button key={k} onClick={() => setFiltro(k)} className={`px-3.5 py-1.5 rounded-full text-sm border ${filtro === k ? 'bg-tinta text-white border-tinta' : 'bg-white border-linea text-gris'}`}>{t}</button>
         ))}
       </div>
-      <p className="text-sm text-gris">Quien paga con Mercado Pago o desde el exterior se activa sola. Las transferencias se confirman en la pestaña Pagos.</p>
+      <input id="buscar-miembro" className="campo max-w-md" placeholder="Buscar por nombre, email, profesión o país" value={q} onChange={e => setQ(e.target.value)} />
+      <p className="text-sm text-gris">Quien paga con Mercado Pago o con tarjeta internacional se activa sola. Las transferencias y Western Union se confirman en la pestaña Pagos. Cualquier cambio de estado o rol pide un motivo y queda registrado.</p>
       <div className="tarjeta overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-gris border-b border-linea">
@@ -45,12 +65,12 @@ function Miembros() {
                 <td className="px-4 py-3"><p className="font-semibold">{p.nombre}</p><p className="text-xs text-gris">{p.email}</p></td>
                 <td className="px-4 py-3">{[p.profesion, p.pais].filter(Boolean).join(' · ') || '—'}</td>
                 <td className="px-4 py-3">
-                  <select className="campo !py-1.5 !w-auto" value={p.estado} onChange={e => cambiar(p.id, { estado: e.target.value as Perfil['estado'] })} aria-label={`Estado de ${p.nombre}`}>
+                  <select className="campo !py-1.5 !w-auto" value={p.estado} onChange={e => { setError(''); setMotivo(''); setPendiente({ p, cambios: { estado: e.target.value as Perfil['estado'] } }); }} aria-label={`Estado de ${p.nombre}`}>
                     <option value="pendiente">Sin activar</option><option value="activa">Activa</option><option value="vencida">Pausada</option>
                   </select>
                 </td>
                 <td className="px-4 py-3">
-                  <select className="campo !py-1.5 !w-auto" value={p.rol} onChange={e => cambiar(p.id, { rol: e.target.value as Perfil['rol'] })} aria-label={`Rol de ${p.nombre}`}>
+                  <select className="campo !py-1.5 !w-auto" value={p.rol} onChange={e => { setError(''); setMotivo(''); setPendiente({ p, cambios: { rol: e.target.value as Perfil['rol'] } }); }} aria-label={`Rol de ${p.nombre}`}>
                     <option value="miembro">Miembro</option><option value="admin">Admin</option>
                   </select>
                 </td>
@@ -61,82 +81,22 @@ function Miembros() {
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-// ── Pagos ───────────────────────────────────────────────────────────
-type Pago = {
-  id: string; metodo: 'mercadopago' | 'transferencia' | 'internacional'; monto: number; moneda: string; meses: number;
-  estado: 'pendiente' | 'confirmado' | 'rechazado'; referencia: string | null; creado: string; confirmado: string | null;
-  perfil: { nombre: string; email: string; vence: string | null } | null;
-};
-const METODO = { mercadopago: 'Mercado Pago', transferencia: 'Transferencia', internacional: 'PayPal / internacional' } as const;
-const dinero = (p: Pago) => `${p.moneda === 'ARS' ? '$' : p.moneda} ${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 }).format(p.monto)}`;
-
-function Pagos() {
-  const [lista, setLista] = useState<Pago[] | null>(null);
-  const [trabajando, setTrabajando] = useState('');
-  const [error, setError] = useState('');
-  const cargar = useCallback(() => api<Pago[]>('admin-pagos').then(setLista).catch(e => setError(e.message)), []);
-  useEffect(() => { cargar(); }, [cargar]);
-
-  const revisar = async (id: string, accion: 'confirmar' | 'rechazar') => {
-    setTrabajando(id); setError('');
-    try { await api('admin-pago', { method: 'PUT', body: { id, accion } }); await cargar(); }
-    catch (e: any) { setError(e.message); }
-    setTrabajando('');
-  };
-
-  if (!lista) return error ? <Error texto={error} /> : <Cargando />;
-  const pendientes = lista.filter(p => p.estado === 'pendiente');
-  const historial = lista.filter(p => p.estado !== 'pendiente');
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <h2 className="font-bold text-lg">Pagos para confirmar ({pendientes.length})</h2>
-        <p className="text-sm text-gris">Revisá que el dinero haya entrado (transferencia o PayPal) y confirmá. La persona queda activa por los meses que pagó. Mercado Pago y el pago con tarjeta internacional se activan solos.</p>
-        <Error texto={error} />
-        {pendientes.length === 0 ? <Vacio titulo="No hay pagos esperando." /> : pendientes.map(p => (
-          <div key={p.id} className="tarjeta p-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold">{p.perfil?.nombre || 'Sin nombre'} <span className="text-gris font-normal text-sm">{p.perfil?.email}</span></p>
-              <p className="text-sm text-gris">{dinero(p)} · {p.meses} {p.meses === 1 ? 'mes' : 'meses'} · {new Date(p.creado).toLocaleString('es-AR')}{p.referencia ? ` · Operación ${p.referencia}` : ''}</p>
+      {pendiente && (
+        <Modal titulo="Confirmar el cambio" onCerrar={() => setPendiente(null)}>
+          <form onSubmit={confirmar} className="flex flex-col gap-4">
+            <div className="text-sm bg-crema rounded-xl p-3">
+              <p><strong>{pendiente.p.nombre}</strong> · {pendiente.p.email}</p>
+              <p className="text-gris mt-1">
+                {pendiente.cambios.rol ? `Rol: ${pendiente.p.rol} → ${pendiente.cambios.rol}` : `Estado: ${pendiente.p.estado} → ${pendiente.cambios.estado}`}
+              </p>
+              {pendiente.cambios.rol === 'admin' && <p className="text-red-700 mt-2">Una administradora puede ver los datos y los pagos de todas las miembros. Dalo solo a una persona de confianza que active la verificación en dos pasos.</p>}
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => revisar(p.id, 'confirmar')} disabled={!!trabajando} className="btn btn-oscuro !py-2 !px-4 text-sm">
-                {trabajando === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> Confirmar</>}
-              </button>
-              <button onClick={() => revisar(p.id, 'rechazar')} disabled={!!trabajando} className="btn btn-borde !py-2 !px-4 text-sm"><X className="w-4 h-4" /> Rechazar</button>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-col gap-3">
-        <h2 className="font-bold text-lg">Últimos pagos</h2>
-        {historial.length === 0 ? <Vacio titulo="Todavía no hay pagos registrados." /> : (
-          <div className="tarjeta overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="text-left text-gris border-b border-linea">
-                <th className="px-4 py-3 font-semibold">Persona</th><th className="px-4 py-3 font-semibold">Medio</th>
-                <th className="px-4 py-3 font-semibold text-right">Monto</th><th className="px-4 py-3 font-semibold">Estado</th><th className="px-4 py-3 font-semibold">Fecha</th>
-              </tr></thead>
-              <tbody>
-                {historial.map(p => (
-                  <tr key={p.id} className="border-b border-linea last:border-0">
-                    <td className="px-4 py-3">{p.perfil?.nombre}<p className="text-xs text-gris">{p.perfil?.email}</p></td>
-                    <td className="px-4 py-3">{METODO[p.metodo]}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{dinero(p)}</td>
-                    <td className="px-4 py-3">{p.estado === 'confirmado' ? 'Confirmado' : 'Rechazado'}</td>
-                    <td className="px-4 py-3 text-gris whitespace-nowrap">{new Date(p.creado).toLocaleDateString('es-AR')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+            <Campo label="Motivo" ayuda="Queda registrado con tu nombre."><input id="motivo-cambio" className="campo" value={motivo} onChange={e => setMotivo(e.target.value)} maxLength={300} required autoFocus /></Campo>
+            <Error texto={error} />
+            <button disabled={guardando || motivo.trim().length < 3} className="btn btn-oscuro w-full">{guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar cambio'}</button>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -360,22 +320,26 @@ function Eventos() {
 
 export default function Admin() {
   const { perfil } = useAuth();
-  const [tab, setTab] = useState<Tab>('miembros');
+  const [tab, setTab] = useState<Tab>('resumen');
   if (perfil?.rol !== 'admin') return <Navigate to="/app" replace />;
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-extrabold">Administración</h1>
-        <div className="flex gap-1 bg-white border border-linea rounded-full p-1">
-          {([['miembros', 'Miembros'], ['pagos', 'Pagos'], ['cursos', 'Cursos'], ['eventos', 'Vivos']] as const).map(([k, t]) => (
-            <button key={k} onClick={() => setTab(k)} className={`px-4 py-1.5 rounded-full text-sm ${tab === k ? 'bg-tinta text-white' : 'text-gris'}`}>{t}</button>
-          ))}
+    <Puerta>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-extrabold">Administración</h1>
+          <div className="flex gap-1 bg-white border border-linea rounded-full p-1 overflow-x-auto max-w-full">
+            {([['resumen', 'Resumen'], ['pagos', 'Pagos'], ['miembros', 'Miembros'], ['cursos', 'Cursos'], ['eventos', 'Vivos'], ['seguridad', 'Seguridad']] as const).map(([k, t]) => (
+              <button key={k} onClick={() => setTab(k)} className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap ${tab === k ? 'bg-tinta text-white' : 'text-gris'}`}>{t}</button>
+            ))}
+          </div>
         </div>
+        {tab === 'resumen' && <Resumen onIr={setTab} />}
+        {tab === 'pagos' && <PagosPanel />}
+        {tab === 'miembros' && <Miembros />}
+        {tab === 'cursos' && <Cursos />}
+        {tab === 'eventos' && <Eventos />}
+        {tab === 'seguridad' && <Seguridad />}
       </div>
-      {tab === 'miembros' && <Miembros />}
-      {tab === 'pagos' && <Pagos />}
-      {tab === 'cursos' && <Cursos />}
-      {tab === 'eventos' && <Eventos />}
-    </div>
+    </Puerta>
   );
 }

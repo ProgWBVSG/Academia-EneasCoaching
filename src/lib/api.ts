@@ -13,7 +13,7 @@ export function guardarSesion(s: Sesion | null) {
 }
 
 export class ApiError extends Error {
-  constructor(message: string, public status: number) { super(message); }
+  constructor(message: string, public status: number, public datos?: any) { super(message); }
 }
 
 let refrescando: Promise<Sesion | null> | null = null;
@@ -51,7 +51,7 @@ export async function api<T = any>(action: string, opts: { method?: string; body
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
     if (r.status === 401) guardarSesion(null);
-    throw new ApiError(data.error || 'Algo salió mal. Probá de nuevo.', r.status);
+    throw new ApiError(data.error || 'Algo salió mal. Probá de nuevo.', r.status, data);
   }
   return data as T;
 }

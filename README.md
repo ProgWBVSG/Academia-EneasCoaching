@@ -11,7 +11,7 @@ Membresía de USD 39/mes de Cecilia B. Sánchez para profesionales que usan el E
 
 ## Puesta en marcha
 
-1. En Supabase, SQL Editor: correr `supabase/schema.sql` y después `supabase/pagos.sql`.
+1. En Supabase, SQL Editor: correr `supabase/schema.sql`, después `supabase/pagos.sql` y después `supabase/seguridad.sql`.
 2. Completar `.env.local` (ver abajo) y correr `npm install` y `npm run dev`. Abre en http://localhost:5240.
 3. Registrarse con un email que esté en `ACADEMIA_ADMIN_EMAILS`: esa cuenta queda como administradora y activa.
 4. En Administración > Cursos, "Cargar contenido inicial" crea las cinco rutas con lecciones de ejemplo, dos vivos y un post de bienvenida.
@@ -22,8 +22,10 @@ Membresía de USD 39/mes de Cecilia B. Sánchez para profesionales que usan el E
 |---|---|
 | `SUPABASE_URL` | URL del proyecto de Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio (secreta) |
-| `ACADEMIA_ADMIN_EMAILS` | Emails separados por coma que entran como administradoras |
+| `ACADEMIA_ADMIN_EMAILS` | Solo sirve para crear a la **primera** administradora (si todavía no hay ninguna). Después, los permisos de admin se dan desde el panel, con motivo y registro. Así nadie puede quedarse con el rol registrándose con un email ajeno |
 | `ACADEMIA_URL` | URL pública de la academia (para volver de Mercado Pago y del mail de contraseña) |
+| `ADMIN_MFA` | `off` apaga la exigencia de verificación en dos pasos del panel. Solo para emergencias (por ejemplo, si se pierde el celular y no hay otra administradora); volver a quitarla enseguida |
+| `VITE_WHATSAPP` | Número de WhatsApp con código de país y sin signos (por defecto el de Cecilia). Recibe los comprobantes y las consultas |
 | `MP_ACCESS_TOKEN` | Token de Mercado Pago. Sin él, el botón de pago deriva a WhatsApp |
 | `ACADEMIA_PRECIO_ARS` | Precio mensual en pesos para la suscripción |
 | `TRANSF_ALIAS`, `TRANSF_CBU`, `TRANSF_TITULAR`, `TRANSF_BANCO`, `TRANSF_CUIT` | Datos para pagar por transferencia. Con alias o CBU cargado, aparece la opción |
@@ -45,3 +47,13 @@ Configurar el webhook de suscripciones en Mercado Pago apuntando a `https://<dom
 ## Puntos y niveles
 
 Publicar +3, comentar +1, me gusta recibido +1, lección completada +2, práctica del laboratorio +3. Nueve niveles (Curiosidad a Sabiduría). Cada curso tiene un nivel mínimo: En sesión se abre en el 2, Equipos e IA en el 3.
+
+## Seguridad del panel de administración
+
+- **Verificación en dos pasos obligatoria** (aplicación de autenticación, TOTP). Sin el código, una administradora solo tiene los permisos de una miembro: el servidor lo exige en cada llamada, no solo la pantalla.
+- **Registro de actividad** (`academia_auditoria`): ingresos, códigos, pagos confirmados o rechazados, altas manuales y cambios de estado o rol, con IP y dispositivo. La aplicación no puede editarlo ni borrarlo.
+- **Motivo obligatorio** para rechazar un pago, dar un alta manual y cambiar el estado o el rol de una persona.
+- **Límite de intentos** (`academia_intentos`): ingresos por email e IP, registros por IP, códigos de verificación y avisos de pago.
+- **Reglas de roles**: nadie cambia su propio rol y siempre queda al menos una administradora.
+- **Encabezados** (`vercel.json`): política de contenido, HSTS, no se puede abrir dentro de otra página y sin caché en la API.
+- Las claves secretas viven solo en el servidor y las tablas tienen RLS sin políticas: el navegador nunca habla con la base.
