@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import Eneagrama from '../components/Eneagrama';
 import { Campo, Error } from '../components/ui';
+import SelectorPais from '../components/SelectorPais';
 
 const PROFESIONES = ['Ninguna, es para mí', 'Psicóloga/o', 'Coach', 'Terapeuta', 'Abogada/o', 'RRHH', 'Líder de equipo', 'Docente', 'Psicopedagoga/o', 'Ventas o atención al cliente', 'Otra profesión'];
 
@@ -71,7 +72,7 @@ export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
                     {PROFESIONES.map(p => <option key={p}>{p}</option>)}
                   </select>
                 </Campo>
-                <Campo label="País"><input id="pais" className="campo" value={f.pais} onChange={set('pais')} placeholder="Argentina" required /></Campo>
+                <Campo label="País"><SelectorPais id="pais" valor={f.pais} onChange={v => setF({ ...f, pais: v })} requerido /></Campo>
               </div>
             </>
           )}

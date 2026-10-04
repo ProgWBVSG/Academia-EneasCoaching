@@ -39,7 +39,7 @@ function Copiar({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 export default function Membresia({ renovar = false }: { renovar?: boolean }) {
   const { perfil } = useAuth();
   const [op, setOp] = useState<Opciones | null>(null);
-  const [desde, setDesde] = useState<'ar' | 'ext'>(enArgentina() ? 'ar' : 'ext');
+  const [desde, setDesde] = useState<'ar' | 'ext'>(perfil?.pais ? (perfil.pais === 'Argentina' ? 'ar' : 'ext') : enArgentina() ? 'ar' : 'ext');
   const [metodo, setMetodo] = useState<'mp' | 'transferencia'>('mp');
   const [meses, setMeses] = useState<1 | 3>(1);
   const [referencia, setReferencia] = useState('');
@@ -149,7 +149,7 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
                     <div className="w-full flex flex-col gap-2">
                       {op.transferencia.alias && <Copiar etiqueta="Alias" valor={op.transferencia.alias} />}
                       {op.transferencia.cbu && <Copiar etiqueta="CBU/CVU" valor={op.transferencia.cbu} />}
-                      {op.transferencia.titular && <p className="text-sm text-gris">Titular: {op.transferencia.titular}{op.transferencia.cuit ? ` · CUIT ${op.transferencia.cuit}` : ''}{op.transferencia.banco ? ` · ${op.transferencia.banco}` : ''}</p>}
+                      {op.transferencia.titular && <p className="text-sm text-gris">Titular: {op.transferencia.titular}{op.transferencia.cuit ? ` · CUIL/CUIT ${op.transferencia.cuit}` : ''}{op.transferencia.banco ? ` · ${op.transferencia.banco}` : ''}</p>}
                     </div>
                     <label className="w-full flex flex-col gap-1.5 text-sm">
                       <span className="text-gris">Número de operación (opcional, ayuda a confirmarla más rápido)</span>

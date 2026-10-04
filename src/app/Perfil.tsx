@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { AvatarNivel, Campo, Error } from '../components/ui';
+import SelectorPais from '../components/SelectorPais';
 
 const ESTADO = { activa: 'Activa', pendiente: 'Sin activar', vencida: 'Pausada' } as const;
 
@@ -41,7 +42,7 @@ export default function PerfilVista() {
         <Campo label="Nombre y apellido"><input id="p-nombre" className="campo" value={f.nombre} onChange={e => setF({ ...f, nombre: e.target.value })} /></Campo>
         <div className="grid sm:grid-cols-2 gap-4">
           <Campo label="Profesión"><input id="p-profesion" className="campo" value={f.profesion} onChange={e => setF({ ...f, profesion: e.target.value })} placeholder="Psicóloga, coach, RRHH..." /></Campo>
-          <Campo label="País"><input id="p-pais" className="campo" value={f.pais} onChange={e => setF({ ...f, pais: e.target.value })} /></Campo>
+          <Campo label="País"><SelectorPais id="p-pais" valor={f.pais} onChange={v => setF({ ...f, pais: v })} /></Campo>
         </div>
         <Campo label="Sobre vos" ayuda="Se ve en el directorio de miembros. Contá cómo usás o querés usar el Eneagrama.">
           <textarea id="p-bio" className="campo min-h-[100px]" value={f.bio} onChange={e => setF({ ...f, bio: e.target.value })} />
