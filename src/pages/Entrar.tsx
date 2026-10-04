@@ -36,8 +36,10 @@ export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
   const recuperar = async () => {
     if (!f.email) { setError('Escribí tu email y volvé a tocar "Olvidé mi contraseña".'); return; }
     setError('');
-    await api('recuperar', { method: 'POST', body: { email: f.email } }).catch(() => {});
-    setAviso('Si existe una cuenta con ese email, te llegó un correo para crear una contraseña nueva.');
+    try {
+      await api('recuperar', { method: 'POST', body: { email: f.email } });
+      setAviso('Te mandamos un correo con un link para crear una contraseña nueva. Revisá también spam.');
+    } catch (err: any) { setError(err.message); }
   };
 
   return (

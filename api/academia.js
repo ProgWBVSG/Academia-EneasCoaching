@@ -657,9 +657,37 @@ export default async function handler(req, res) {
       const email = String(body.email || '').trim().toLowerCase();
       if (await intentosEn('recuperar', `ip:${ipDe(req)}`, 60) >= 10) return demasiados(res);
       await anotarIntento('recuperar', `ip:${ipDe(req)}`);
-      const { error } = await clienteAuth().auth.resetPasswordForEmail(email, { redirectTo: `${env('ACADEMIA_URL')}/entrar` });
-      // La respuesta es la misma exista o no la cuenta, pero un fallo del servicio de mail queda en el registro del servidor
-      if (error) console.error('recuperar contraseña:', error.status, error.message);
+      // Se avisa si el email no está registrado. Para que no sirva para averiguar qué emails existen en masa,
+      // los pedidos están limitados por IP (arriba).
+      const { data: existe } = await sb.from('academia_perfiles').select('id').eq('email', email).maybeSingle();
+      if (!existe) return res.status(404).json({ error: 'Ese email no está registrado. Revisalo o creá tu cuenta.' });
+      const { error } = await clienteAuth().auth.resetPasswordForEmail(email, { redirectTo: `${env('ACADEMIA_URL')}/restablecer` });
+      if (error) {
+        console.error('recuperar contraseña:', error.status, error.message);
+        return res.status(502).json({ error: 'No pudimos enviar el correo ahora. Probá de nuevo en unos minutos.' });
+      }
+      return res.status(200).json({ ok: true });
+    }
+
+    // Crea la contraseña nueva con el permiso temporal que llega en el link del mail
+    if (action === 'restablecer' && m === 'POST') {
+      if (await intentosEn('restablecer', `ip:${ipDe(req)}`, 60) >= 10) return demasiados(res);
+      await anotarIntento('restablecer', `ip:${ipDe(req)}`);
+      const password = String(body.password || '');
+      if (password.length < 8) return res.status(400).json({ error: 'La contraseña tiene que tener al menos 8 caracteres.' });
+      const permiso = String(body.access_token || '');
+      const { data: u } = await sb.auth.getUser(permiso);
+      let metodos = [];
+      try { metodos = JSON.parse(Buffer.from(permiso.split('.')[1], 'base64url').toString('utf8')).amr || []; } catch { /* token inválido */ }
+      // Solo sirve el permiso que viene de un link de mail (no una sesión común)
+      if (!u?.user || !metodos.some(a => a.method === 'otp' || a.method === 'recovery')) {
+        return res.status(400).json({ error: 'El link venció o ya se usó. Pedí uno nuevo desde la pantalla de ingreso.' });
+      }
+      const { error } = await sb.auth.admin.updateUserById(u.user.id, { password });
+      if (error) return res.status(400).json({ error: error.message.includes('same') ? 'Elegí una contraseña distinta de la anterior.' : 'No pudimos guardar la contraseña. Probá con otra.' });
+      await sb.auth.admin.signOut(permiso, 'global');   // cierra todas las sesiones abiertas
+      const { data: perfil } = await sb.from('academia_perfiles').select('id,email,rol').eq('id', u.user.id).maybeSingle();
+      if (perfil?.rol === 'admin') await auditar(req, perfil, 'password_restablecida');
       return res.status(200).json({ ok: true });
     }
 

@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './lib/auth';
 import { Cargando } from './components/ui';
 import Landing from './pages/Landing';
 import Entrar from './pages/Entrar';
+import Restablecer from './pages/Restablecer';
 import Layout from './app/Layout';
 import Comunidad from './app/Comunidad';
 import Aula from './app/Aula';
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/entrar" element={<Entrar modo="entrar" />} />
           <Route path="/registro" element={<Entrar modo="registro" />} />
+          <Route path="/restablecer" element={<Restablecer />} />
           <Route path="/app" element={<Protegida><Layout /></Protegida>}>
             <Route index element={<Comunidad />} />
             <Route path="aula" element={<Aula />} />
