@@ -506,9 +506,6 @@ export default function Landing() {
               </div>
             ))}
           </Carrusel>
-          <p className="revelar text-crema text-xl md:text-2xl font-display font-bold leading-snug max-w-3xl text-center">
-            En el trabajo y en la vida, lo que más cuesta es entender qué nos mueve: a nosotros y a los demás. El Eneagrama es el mapa de eso. Y empieza por vos.
-          </p>
         </div>
       </section>
 
