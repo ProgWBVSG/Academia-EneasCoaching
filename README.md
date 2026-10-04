@@ -27,6 +27,7 @@ Membresía de USD 39/mes de Cecilia B. Sánchez para profesionales que usan el E
 | `MP_ACCESS_TOKEN` | Token de Mercado Pago. Sin él, el botón de pago deriva a WhatsApp |
 | `ACADEMIA_PRECIO_ARS` | Precio mensual en pesos para la suscripción |
 | `TRANSF_ALIAS`, `TRANSF_CBU`, `TRANSF_TITULAR`, `TRANSF_BANCO`, `TRANSF_CUIT` | Datos para pagar por transferencia. Con alias o CBU cargado, aparece la opción |
+| `INTL_WU_NOMBRE`, `INTL_WU_PAIS`, `INTL_WU_CIUDAD` | Pago internacional por Western Union: nombre completo del receptor (como figura en su documento), país y ciudad. La persona envía el dinero y avisa con el número de control (MTCN) |
 | `INTL_PAYPAL_URL`, `INTL_INSTRUCCIONES` | Pago internacional manual (mientras no haya Lemon Squeezy): link de PayPal (por ejemplo `https://www.paypal.com/paypalme/usuario`) y/o texto con instrucciones de transferencia internacional (`
 ` para salto de línea). Se confirma en Administración > Pagos |
 | `LS_CHECKOUT_URL_39`, `LS_CHECKOUT_URL_59` (o `LS_CHECKOUT_URL`) | Links de checkout de Lemon Squeezy para el pago internacional, uno por precio |
