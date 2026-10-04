@@ -10,7 +10,7 @@ import { IconoWhatsApp } from '../pages/Landing';
 // Exterior: tarjeta internacional o PayPal (Lemon Squeezy), en dólares.
 
 type Opciones = {
-  usd: number; ars: number | null; mp: boolean; internacional: boolean; internacionalManual: { paypal?: string; instrucciones?: string } | null;
+  usd: number; ars: number | null; mp: boolean; internacional: boolean; internacionalManual: { westernUnion?: { nombre: string; pais: string; ciudad?: string } | null; paypal?: string; instrucciones?: string } | null;
   transferencia: { alias?: string; cbu?: string; titular?: string; banco?: string; cuit?: string } | null;
   metodo: string | null; vence: string | null;
   pendiente: { meses: number; monto: number; moneda: string; creado: string } | null;
@@ -52,6 +52,7 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
       setOp(o);
       if (o.pendiente) setAvisado(o.pendiente.moneda === 'USD' ? 'USD' : 'ARS');
       if (o.metodo === 'transferencia') setMetodo('transferencia');
+      if (o.internacionalManual?.westernUnion) setMeses(3);
       if (!o.mp && o.transferencia) setMetodo('transferencia');
     }).catch(e => setError(e.message));
   }, []);
@@ -179,7 +180,9 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
                 <span className="text-sm text-gris">
                   {op.internacional
                     ? 'Pagás en dólares desde cualquier país. Se cobra solo cada mes y lo cancelás cuando quieras. Los impuestos de tu país, si corresponden, se calculan en el pago.'
-                    : 'Pagás en dólares por PayPal o transferencia internacional, por 1 o 3 meses. Te activamos apenas confirmamos el pago.'}
+                    : op.internacionalManual?.westernUnion
+                      ? 'Enviás el dinero en dólares por Western Union, por 1 o 3 meses. En el sitio de Western Union podés pagar el envío con tarjeta de crédito o débito. Te activamos apenas confirmamos que llegó.'
+                      : 'Pagás en dólares por PayPal o transferencia internacional, por 1 o 3 meses. Te activamos apenas confirmamos el pago.'}
                 </span>
               </div>
               <Error texto={error} />
@@ -204,7 +207,19 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
                           className={`px-4 py-1.5 rounded-full ${meses === n ? 'bg-tinta text-crema' : 'text-gris'}`}>{n === 1 ? '1 mes' : '3 meses'}</button>
                       ))}
                     </div>
-                    <p className="text-sm">Pagá <strong className="tabular-nums">USD {op.usd * meses}</strong>{op.internacionalManual.paypal ? ' con PayPal:' : ':'}</p>
+                    {op.internacionalManual.westernUnion ? (
+                      <>
+                        <p className="text-sm">Enviá <strong className="tabular-nums">USD {op.usd * meses}</strong> por Western Union a:</p>
+                        <div className="w-full flex flex-col gap-2">
+                          <Copiar etiqueta="Nombre" valor={op.internacionalManual.westernUnion.nombre} />
+                          <p className="text-sm text-gris">País: {op.internacionalManual.westernUnion.pais}{op.internacionalManual.westernUnion.ciudad ? ` · Ciudad: ${op.internacionalManual.westernUnion.ciudad}` : ''}</p>
+                        </div>
+                        <p className="text-sm text-gris">Enviá el monto en dólares (USD). Al terminar, Western Union te da un <strong>número de control (MTCN)</strong> de 10 dígitos: ponelo abajo.</p>
+                        <a href="https://www.westernunion.com/" target="_blank" rel="noopener noreferrer" className="btn btn-oro btn-grande w-full">Ir a Western Union</a>
+                      </>
+                    ) : (
+                      <p className="text-sm">Pagá <strong className="tabular-nums">USD {op.usd * meses}</strong>{op.internacionalManual.paypal ? ' con PayPal:' : ':'}</p>
+                    )}
                     {op.internacionalManual.paypal && (
                       <a href={op.internacionalManual.paypal} target="_blank" rel="noopener noreferrer" className="btn btn-oro btn-grande w-full">Pagar con PayPal</a>
                     )}
@@ -212,11 +227,11 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
                       <p className="text-sm text-gris whitespace-pre-line">{op.internacionalManual.instrucciones}</p>
                     )}
                     <label className="w-full flex flex-col gap-1.5 text-sm">
-                      <span className="text-gris">Número de operación (opcional, ayuda a confirmarlo más rápido)</span>
-                      <input id="ref-internacional" className="campo text-center" value={referencia} onChange={e => setReferencia(e.target.value)} maxLength={80} />
+                      <span className="text-gris">{op.internacionalManual.westernUnion ? 'Número de control MTCN' : 'Número de operación (opcional, ayuda a confirmarlo más rápido)'}</span>
+                      <input id="ref-internacional" inputMode={op.internacionalManual.westernUnion ? 'numeric' : undefined} className="campo text-center" value={referencia} onChange={e => setReferencia(e.target.value)} maxLength={80} />
                     </label>
-                    <button onClick={() => avisar('internacional')} disabled={!!cargando} className="btn btn-oscuro btn-grande w-full">
-                      {cargando === 'intl-aviso' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ya pagué'}
+                    <button onClick={() => avisar('internacional')} disabled={!!cargando || (!!op.internacionalManual.westernUnion && referencia.replace(/\D/g, '').length < 8)} className="btn btn-oscuro btn-grande w-full">
+                      {cargando === 'intl-aviso' ? <Loader2 className="w-5 h-5 animate-spin" /> : op.internacionalManual.westernUnion ? 'Ya envié el dinero' : 'Ya pagué'}
                     </button>
                   </div>
                 )

@@ -208,8 +208,11 @@ function datosTransferencia() {
 // Pago internacional manual (puente mientras no haya Lemon Squeezy): link de PayPal y/o instrucciones
 // de transferencia internacional. Se confirma a mano en el panel, igual que la transferencia local.
 function datosInternacionalManual() {
-  const d = { paypal: env('INTL_PAYPAL_URL'), instrucciones: env('INTL_INSTRUCCIONES').replace(/\\n/g, '\n') };
-  return d.paypal || d.instrucciones ? d : null;
+  const wu = env('INTL_WU_NOMBRE')
+    ? { nombre: env('INTL_WU_NOMBRE'), pais: env('INTL_WU_PAIS') || 'Argentina', ciudad: env('INTL_WU_CIUDAD') }
+    : null;
+  const d = { westernUnion: wu, paypal: env('INTL_PAYPAL_URL'), instrucciones: env('INTL_INSTRUCCIONES').replace(/\n/g, '\n') };
+  return d.westernUnion || d.paypal || d.instrucciones ? d : null;
 }
 
 async function leerCrudo(req) {
