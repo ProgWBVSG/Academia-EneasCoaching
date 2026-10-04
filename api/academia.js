@@ -654,9 +654,12 @@ export default async function handler(req, res) {
     }
 
     if (action === 'recuperar' && m === 'POST') {
-      await clienteAuth().auth.resetPasswordForEmail(String(body.email || '').trim().toLowerCase(), {
-        redirectTo: `${env('ACADEMIA_URL')}/entrar`,
-      });
+      const email = String(body.email || '').trim().toLowerCase();
+      if (await intentosEn('recuperar', `ip:${ipDe(req)}`, 60) >= 10) return demasiados(res);
+      await anotarIntento('recuperar', `ip:${ipDe(req)}`);
+      const { error } = await clienteAuth().auth.resetPasswordForEmail(email, { redirectTo: `${env('ACADEMIA_URL')}/entrar` });
+      // La respuesta es la misma exista o no la cuenta, pero un fallo del servicio de mail queda en el registro del servidor
+      if (error) console.error('recuperar contraseña:', error.status, error.message);
       return res.status(200).json({ ok: true });
     }
 
