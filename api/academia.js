@@ -234,14 +234,18 @@ async function mp(path, opts = {}) {
 // ── Pagos ─────────────────────────────────────────────────────────────
 // Argentina: Mercado Pago (débito automático en pesos) o transferencia (sin comisión, se confirma a mano).
 // Exterior: Lemon Squeezy, que cobra en dólares y se encarga de los impuestos de cada país.
-const CUPO_LANZAMIENTO = 100;
+// Precio de lanzamiento: USD 39 para las primeras 50 miembros o hasta la fecha de cierre, lo que ocurra primero.
+// Quien entra a ese precio lo mantiene mientras siga en la Academia. Después, USD 59.
+const CUPO_LANZAMIENTO = Number(env('ACADEMIA_CUPO_LANZAMIENTO')) || 50;
+const CIERRE_LANZAMIENTO = env('ACADEMIA_CIERRE_LANZAMIENTO') || '2026-12-31T23:59:59-03:00';
+const lanzamientoAbierto = (activas) => (activas || 0) < CUPO_LANZAMIENTO && Date.now() < Date.parse(CIERRE_LANZAMIENTO);
 const sumarMeses = (desde, meses) => { const d = new Date(desde); d.setMonth(d.getMonth() + meses); return d.toISOString(); };
 
-// Precio en dólares de cada miembro: quien entra entre las primeras 100 mantiene USD 39
+// Precio en dólares de cada miembro: quien entró durante el lanzamiento mantiene USD 39
 async function precioUsdDe(perfil) {
   if (perfil?.precio_usd) return perfil.precio_usd;
   const { count } = await sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('estado', 'activa').eq('rol', 'miembro');
-  return (count || 0) < CUPO_LANZAMIENTO ? 39 : 59;
+  return lanzamientoAbierto(count) ? 39 : 59;
 }
 
 // Pesos al dólar oficial del día, redondeados a la centena. Sin cotización, usa ACADEMIA_PRECIO_ARS.
@@ -724,9 +728,8 @@ export default async function handler(req, res) {
         sb.from('academia_perfiles').select('id', { count: 'exact', head: true }).eq('estado', 'activa').eq('rol', 'miembro'),
         sb.from('academia_eventos').select('titulo,inicio,tipo').gte('inicio', new Date().toISOString()).order('inicio').limit(1),
       ]);
-      // Precio de lanzamiento USD 39 para las primeras 100 miembros activas; después USD 59
-      const lanzamiento = (miembros || 0) < 100;
-      return res.status(200).json({ miembros: miembros || 0, proximo: proximo?.[0] || null, precio_usd: lanzamiento ? 39 : 59, lanzamiento });
+      const lanzamiento = lanzamientoAbierto(miembros);
+      return res.status(200).json({ miembros: miembros || 0, proximo: proximo?.[0] || null, precio_usd: lanzamiento ? 39 : 59, lanzamiento, cupo: CUPO_LANZAMIENTO, cierre: CIERRE_LANZAMIENTO });
     }
 
     if (action === 'cotizacion' && m === 'GET') {

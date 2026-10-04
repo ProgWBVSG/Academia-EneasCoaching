@@ -67,3 +67,8 @@ html { scroll-behavior: smooth; }
 /* Globito de WhatsApp */
 @keyframes aparecer-globo { from { opacity: 0; transform: translateY(8px) scale(.96); } to { opacity: 1; transform: none; } }
 .globo-wpp { animation: aparecer-globo .35s ease-out; }
+
+/* Botón principal que late suave para llamar la atención (se activa a los 2 minutos del video) */
+@keyframes latido { 0%, 100% { box-shadow: 0 0 0 0 rgb(176 138 69 / .55); } 50% { box-shadow: 0 0 0 12px rgb(176 138 69 / 0); } }
+.btn-latido { animation: latido 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .btn-latido { animation: none; } }

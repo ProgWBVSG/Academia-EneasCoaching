@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 // precio que tendrá después del lanzamiento.
 export const PRECIO_USD = 39;
 export const PRECIO_LISTA_USD = 59;
-// El precio de lanzamiento vale para las primeras 100 miembros; después pasa al de lista
-export const CUPO_LANZAMIENTO = 100;
+// El precio de lanzamiento vale para las primeras 50 miembros o hasta la fecha de cierre, lo que
+// ocurra primero. Son los valores de respaldo: los que mandan vienen de la API (publico-info).
+export const CUPO_LANZAMIENTO = 50;
+export const CIERRE_LANZAMIENTO = '2026-12-31T23:59:59-03:00';
 
 export type Moneda = 'USD' | 'ARS' | 'EUR';
 type Cotizacion = { ars: number | null; eur: number | null; actualizado: string | null };
@@ -58,8 +60,8 @@ export function usePrecio() {
   const nota = moneda === 'ARS'
     ? 'En Argentina pagás en pesos, al dólar oficial del día: con Mercado Pago o por transferencia.'
     : moneda === 'EUR'
-      ? 'Valor aproximado en euros. Desde otros países pagás con tarjeta internacional o PayPal.'
-      : 'En Argentina pagás en pesos con Mercado Pago o transferencia. Desde otros países, con tarjeta internacional o PayPal.';
+      ? 'Valor aproximado en euros. Desde otros países pagás en dólares por Western Union.'
+      : 'En Argentina pagás en pesos con Mercado Pago o transferencia. Desde otros países, en dólares por Western Union.';
 
   return { moneda, elegir, fmt, nota, disponible: !!cotiz };
 }
@@ -75,4 +77,23 @@ export function SelectorMoneda({ moneda, elegir, oscuro = false }: { moneda: Mon
       ))}
     </div>
   );
+}
+
+// Tiempo que falta para una fecha, actualizado cada segundo. null si ya pasó o no es válida.
+export function useCuentaRegresiva(fecha: string) {
+  const fin = Date.parse(fecha);
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!fin) return;
+    const id = setInterval(() => setAhora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [fin]);
+  const resta = fin - ahora;
+  if (!fin || resta <= 0) return null;
+  return {
+    dias: Math.floor(resta / 864e5),
+    horas: Math.floor(resta / 36e5) % 24,
+    minutos: Math.floor(resta / 6e4) % 60,
+    segundos: Math.floor(resta / 1e3) % 60,
+  };
 }

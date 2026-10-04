@@ -34,6 +34,8 @@ Membresía de USD 39/mes de Cecilia B. Sánchez para profesionales que usan el E
 | `VITE_WHATSAPP` | Número de WhatsApp con código de país y sin signos (por defecto el de Cecilia). Recibe los comprobantes y las consultas |
 | `MP_ACCESS_TOKEN` | Token de Mercado Pago. Sin él, el botón de pago deriva a WhatsApp |
 | `ACADEMIA_PRECIO_ARS` | Precio mensual en pesos para la suscripción |
+| `ACADEMIA_CUPO_LANZAMIENTO` | Lugares a precio de lanzamiento (USD 39). Por defecto 50 |
+| `ACADEMIA_CIERRE_LANZAMIENTO` | Fecha en que termina el precio de lanzamiento, aunque queden lugares. Por defecto `2026-12-31T23:59:59-03:00`. La landing muestra la cuenta regresiva hasta esa fecha |
 | `TRANSF_ALIAS`, `TRANSF_CBU`, `TRANSF_TITULAR`, `TRANSF_BANCO`, `TRANSF_CUIT` | Datos para pagar por transferencia. Con alias o CBU cargado, aparece la opción |
 | `INTL_WU_NOMBRE`, `INTL_WU_PAIS`, `INTL_WU_CIUDAD` | Pago internacional por Western Union: nombre completo del receptor (como figura en su documento), país y ciudad. La persona envía el dinero y avisa con el número de control (MTCN) |
 | `INTL_PAYPAL_URL`, `INTL_INSTRUCCIONES` | Pago internacional manual (mientras no haya Lemon Squeezy): link de PayPal (por ejemplo `https://www.paypal.com/paypalme/usuario`) y/o texto con instrucciones de transferencia internacional (`
@@ -43,7 +45,7 @@ Membresía de USD 39/mes de Cecilia B. Sánchez para profesionales que usan el E
 | `CRON_SECRET` | Clave del cron mensual de Vercel que ajusta las suscripciones de Mercado Pago al dólar oficial |
 | `ANTHROPIC_API_KEY` | Activa el laboratorio de práctica |
 | `ACADEMIA_IA_MODEL` | Opcional. Por defecto `claude-opus-5` |
-| `VITE_VSL_URL` | Link del video de Cecilia en la landing (YouTube, Vimeo o .mp4). En local: `/vsl/vsl-cecilia.mp4` (comprimido a 1080p, no se sube al repositorio). Sin él, se ve su foto con el aviso "se publica muy pronto" |
+| `VITE_VSL_URL` | Link del video de Cecilia en la landing (YouTube, Vimeo o .mp4). Hoy: `https://youtu.be/D5bPKWH8KkE` (no listado); el reproductor se carga al tocar play, con la portada `/vsl/poster.jpg`. Sin él, se ve su foto con el aviso "se publica muy pronto" |
 | `VITE_VSL_POSTER` | Opcional. Portada del video .mp4. Por defecto `/vsl/poster.jpg` |
 
 ## Mercado Pago

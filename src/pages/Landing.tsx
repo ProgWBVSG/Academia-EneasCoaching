@@ -8,7 +8,7 @@ import {
 import Eneagrama from '../components/Eneagrama';
 import { useAuth } from '../lib/auth';
 import { wa } from '../lib/contacto';
-import { usePrecio, SelectorMoneda, PRECIO_USD, PRECIO_LISTA_USD, CUPO_LANZAMIENTO } from '../lib/precio';
+import { usePrecio, useCuentaRegresiva, SelectorMoneda, PRECIO_USD, PRECIO_LISTA_USD, CUPO_LANZAMIENTO, CIERRE_LANZAMIENTO } from '../lib/precio';
 
 // Reglas de esta página: todo centrado, sin etiquetas arriba de los títulos y un texto
 // neutro para mujeres y hombres. El foco es usar el Eneagrama en el trabajo y en la vida: con clientes,
@@ -23,12 +23,44 @@ const VSL = (import.meta.env.VITE_VSL_URL as string | undefined)?.trim() || '';
 // Portada del video propio: el cuadro de Cecilia diciendo "este video es para vos"
 const VSL_PORTADA = (import.meta.env.VITE_VSL_POSTER as string | undefined)?.trim() || '/vsl/poster.jpg';
 
+// El reproductor de YouTube o Vimeo se carga recién cuando tocan play (y arranca solo):
+// la página abre más rápido y se ve la portada propia en vez de la de YouTube.
 function urlEmbed(url: string): string | null {
   const yt = url.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/);
-  if (yt) return `https://www.youtube.com/embed/${yt[1]}?rel=0&modestbranding=1`;
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0&modestbranding=1&playsinline=1&autoplay=1`;
   const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1`;
   return null;
+}
+
+// Fecha corta en castellano: "31 de diciembre"
+const fechaLarga = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+
+// Cuenta regresiva real hasta el cierre del precio de lanzamiento
+function CuentaRegresiva({ cierre }: { cierre: string }) {
+  const t = useCuentaRegresiva(cierre);
+  if (!t) return null;
+  const partes: [number, string][] = [[t.dias, t.dias === 1 ? 'día' : 'días'], [t.horas, 'horas'], [t.minutos, 'min'], [t.segundos, 'seg']];
+  return (
+    <div className="flex justify-center gap-2" role="timer" aria-label={`Faltan ${t.dias} días y ${t.horas} horas`}>
+      {partes.map(([n, txt]) => (
+        <span key={txt} className="w-16 rounded-xl py-2 flex flex-col items-center bg-oro-suave text-tinta">
+          <span className="font-display font-extrabold text-xl leading-none tabular-nums">{String(n).padStart(2, '0')}</span>
+          <span className="text-[11px] mt-1 text-gris">{txt}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Barra de lugares ocupados: muestra el avance real del cupo
+function BarraCupo({ ocupados, cupo }: { ocupados: number; cupo: number }) {
+  const pct = Math.min(100, Math.max(4, (ocupados / cupo) * 100));
+  return (
+    <div className="w-full max-w-xs h-2 rounded-full overflow-hidden bg-linea" aria-hidden>
+      <div className="h-full rounded-full bg-oro transition-[width] duration-700" style={{ width: `${pct}%` }} />
+    </div>
+  );
 }
 
 const ESCENAS = [
@@ -368,13 +400,26 @@ function BotonWhatsApp({ elevado }: { elevado: boolean }) {
   );
 }
 
-function VideoCecilia() {
+function VideoCecilia({ alReproducir }: { alReproducir: () => void }) {
   const embed = VSL ? urlEmbed(VSL) : null;
+  const [cargado, setCargado] = useState(false);
+  const reproducir = () => { setCargado(true); alReproducir(); };
   return (
     <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-tinta shadow-2xl shadow-oro/15 ring-1 ring-oro/30">
-      {embed ? (
+      {embed && cargado ? (
         <iframe src={embed} title="Cecilia te cuenta qué es la Academia" className="absolute inset-0 w-full h-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+      ) : embed ? (
+        <button type="button" onClick={reproducir} aria-label="Ver el video de Cecilia" className="absolute inset-0 group">
+          <img src={VSL_PORTADA} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <span className="absolute inset-0 bg-tinta/15 group-hover:bg-tinta/5 transition-colors" />
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="relative w-20 h-20 rounded-full bg-oro/95 text-white flex items-center justify-center shadow-xl shadow-black/30 group-hover:scale-105 transition-transform">
+              <span className="absolute inset-0 rounded-full bg-oro animate-ping opacity-25" aria-hidden />
+              <Play className="relative w-9 h-9 fill-current ml-1" />
+            </span>
+          </span>
+        </button>
       ) : VSL ? (
         <VideoPropio />
       ) : (
@@ -394,7 +439,7 @@ function VideoCecilia() {
 
 export default function Landing() {
   const { perfil } = useAuth();
-  const [info, setInfo] = useState<{ miembros: number; proximo: { titulo: string; inicio: string } | null } | null>(null);
+  const [info, setInfo] = useState<{ miembros: number; proximo: { titulo: string; inicio: string } | null; cupo?: number; cierre?: string } | null>(null);
   const [abierta, setAbierta] = useState<number | null>(null);
   const [todasLasPreguntas, setTodasLasPreguntas] = useState(false);
   const [tipo, setTipo] = useState(6);
@@ -434,11 +479,28 @@ export default function Landing() {
   const t = TIPOS[tipo];
   const precio = usePrecio();
 
-  // Precio de lanzamiento mientras haya menos de 100 miembros; después, el de lista sin tachar
-  const restantes = Math.max(0, CUPO_LANZAMIENTO - (info?.miembros ?? 0));
-  const lanzamiento = restantes > 0;
+  // Precio de lanzamiento hasta completar el cupo o hasta la fecha de cierre, lo que ocurra primero.
+  // Después, el de lista sin tachar. El cupo y la fecha los define la API.
+  const cupo = info?.cupo ?? CUPO_LANZAMIENTO;
+  const cierre = info?.cierre ?? CIERRE_LANZAMIENTO;
+  const enFecha = useCuentaRegresiva(cierre) !== null;
+  const ocupados = Math.min(cupo, info?.miembros ?? 0);
+  const restantes = cupo - ocupados;
+  const lanzamiento = restantes > 0 && enFecha;
   const mensual = precio.fmt(lanzamiento ? PRECIO_USD : PRECIO_LISTA_USD);
-  const cupos = info && lanzamiento ? `Quedan ${restantes} de ${CUPO_LANZAMIENTO} lugares a este precio.` : null;
+  // Con pocas miembros todavía no se muestra el conteo ("quedan 50 de 50" no dice nada): solo el límite
+  const verAvance = ocupados >= 5;
+  const cupos = info && lanzamiento ? (verAvance ? `Quedan ${restantes} de ${cupo} lugares a este precio.` : `Precio limitado a los primeros ${cupo} lugares.`) : null;
+  const hastaCuando = lanzamiento ? `El precio de lanzamiento termina el ${fechaLarga(cierre)} o al completarse los ${cupo} lugares.` : null;
+
+  // A los 2 minutos de empezar el video se destaca el botón: quien ya decidió no tiene que esperar al final
+  const [vioVideo, setVioVideo] = useState(false);
+  const [destacar, setDestacar] = useState(false);
+  useEffect(() => {
+    if (!vioVideo) return;
+    const id = setTimeout(() => setDestacar(true), 120_000);
+    return () => clearTimeout(id);
+  }, [vioVideo]);
 
   return (
     <div className="min-h-screen">
@@ -468,12 +530,13 @@ export default function Landing() {
           <span className="text-oro md:whitespace-nowrap">comienza por comprenderte a vos.</span>
         </h1>
         <p className="text-lg md:text-xl text-tinta font-semibold -mt-2 max-w-3xl">Cómo mejorar tus vínculos con tu familia, en tu trabajo, con tu equipo y con vos mismo.</p>
-        <div className="w-full max-w-4xl"><VideoCecilia /></div>
+        <div className="w-full max-w-4xl"><VideoCecilia alReproducir={() => setVioVideo(true)} /></div>
         <p className="text-lg md:text-xl text-gris max-w-2xl">
           El Eneagrama aplicado a tu trabajo y a tu vida.
         </p>
+        {destacar && <p className="globo-wpp font-semibold text-tinta -mb-3">Si ya sabés que es para vos, no hace falta esperar al final del video.</p>}
         <div className="flex flex-col sm:flex-row justify-center items-stretch gap-3 w-full sm:w-auto">
-          <Link to={cta} className="btn btn-oro btn-grande">Quiero sumarme por {mensual} al mes <ArrowRight className="w-5 h-5" /></Link>
+          <Link to={cta} className={`btn btn-oro btn-grande ${destacar ? 'btn-latido' : ''}`}>Quiero sumarme por {mensual} al mes <ArrowRight className="w-5 h-5" /></Link>
           <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="btn btn-whatsapp btn-grande"><IconoWhatsApp className="w-5 h-5" /> Consultar por WhatsApp</a>
         </div>
         <div className="flex flex-col items-center gap-2 text-sm text-gris">
@@ -483,7 +546,13 @@ export default function Landing() {
               : <span><strong className="text-tinta tabular-nums">{mensual}</strong> por mes</span>}
             {precio.disponible && <SelectorMoneda moneda={precio.moneda} elegir={precio.elegir} />}
           </div>
-          {cupos && <span className="font-semibold text-oro">{cupos}</span>}
+          {cupos && (
+            <div className="flex flex-col items-center gap-2 w-full pt-1">
+              <span className="font-semibold text-oro">{cupos}</span>
+              {verAvance && <BarraCupo ocupados={ocupados} cupo={cupo} />}
+              <span>{hastaCuando}</span>
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gris">
           <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-oro" /> Para quien empieza y para quien ya lo conoce</span>
@@ -670,7 +739,15 @@ export default function Landing() {
               <p className="font-display font-extrabold text-[2.6rem] sm:text-5xl leading-none tabular-nums">{mensual}</p>
               <p className="text-gris">{lanzamiento ? 'por mes, precio de lanzamiento' : 'por mes'}</p>
             </div>
-            {cupos && <p className="text-sm font-semibold text-oro">{cupos} Quien entra ahora lo mantiene mientras siga en la Academia.</p>}
+            {cupos && (
+              <div className="flex flex-col items-center gap-3 w-full">
+                <p className="text-sm font-semibold text-oro">{cupos}</p>
+                {verAvance && <BarraCupo ocupados={ocupados} cupo={cupo} />}
+                <p className="text-sm text-gris">El precio de lanzamiento termina en:</p>
+                <CuentaRegresiva cierre={cierre} />
+                <p className="text-sm text-gris">Quien entra ahora mantiene este precio mientras siga en la Academia.</p>
+              </div>
+            )}
             <ul className="flex flex-col items-center gap-2.5 text-[15px]">
               {INCLUYE_PRECIO.map(x => (
                 <li key={x} className="flex items-start gap-2"><Check className="w-5 h-5 text-oro shrink-0" />{x}</li>
@@ -717,7 +794,7 @@ export default function Landing() {
           <span className="text-crema/80"><Eneagrama tam={64} /></span>
           <h2 className="text-3xl md:text-4xl font-extrabold leading-tight max-w-2xl">Primero te conocés vos. <span className="text-oro-claro">Después entendés al otro.</span></h2>
           <Link to={cta} className="btn btn-oro btn-grande">Quiero sumarme por {mensual} al mes <ArrowRight className="w-4 h-4" /></Link>
-          {cupos && <p className="text-sm text-crema/70">{cupos}</p>}
+          {cupos && <p className="text-sm text-crema/70">{cupos} {hastaCuando}</p>}
         </div>
       </section>
 
@@ -725,6 +802,7 @@ export default function Landing() {
       <div className={`md:hidden fixed inset-x-0 bottom-0 z-30 bg-crema/95 backdrop-blur border-t border-linea px-4 pt-3 transition-transform duration-300 ${verBarra ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }} aria-hidden={!verBarra}>
         <Link to={cta} tabIndex={verBarra ? 0 : -1} className="btn btn-oro w-full !py-3 text-[15px]">Sumarme por {mensual} al mes</Link>
+        {cupos && <p className="text-xs text-gris text-center mt-1.5">{verAvance ? `Quedan ${restantes} lugares` : 'Precio de lanzamiento'} · hasta el {fechaLarga(cierre)}</p>}
       </div>
 
       <BotonWhatsApp elevado={verBarra} />
