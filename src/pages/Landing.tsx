@@ -463,13 +463,13 @@ export default function Landing() {
       {/* Promesa, video y bajada */}
       <section className="max-w-5xl mx-auto px-5 pt-12 pb-16 md:pt-16 md:pb-20 flex flex-col items-center text-center gap-7">
         <h1 className="text-[2.1rem] md:text-[3rem] leading-[1.1] font-extrabold tracking-tight">
-          <span className="md:whitespace-nowrap">Para entender a los demás,</span><br />
-          <span className="text-oro md:whitespace-nowrap">primero hay que entenderse.</span>
+          <span className="md:whitespace-nowrap">Hay una razón detrás</span><br />
+          <span className="text-oro md:whitespace-nowrap">de cada reacción.</span>
         </h1>
-        <p className="text-lg md:text-xl text-tinta font-semibold -mt-2">Mirá el video: en menos de cinco minutos vas a entender cómo.</p>
+        <p className="text-lg md:text-xl text-tinta font-semibold -mt-2">Mirá el video: Cecilia te muestra cuál es, en vos y en los demás.</p>
         <div className="w-full max-w-4xl"><VideoCecilia /></div>
-        <p className="text-lg md:text-xl text-gris max-w-xl">
-          El Eneagrama aplicado a tu trabajo y a tu vida, con Cecilia B. Sánchez.
+        <p className="text-lg md:text-xl text-gris max-w-2xl">
+          Mejorá tus vínculos en tu trabajo, en tu familia y con vos, con el Eneagrama y Cecilia B. Sánchez.
         </p>
         <div className="flex flex-col sm:flex-row justify-center items-stretch gap-3 w-full sm:w-auto">
           <Link to={cta} className="btn btn-oro btn-grande">Quiero sumarme por {mensual} al mes <ArrowRight className="w-5 h-5" /></Link>
