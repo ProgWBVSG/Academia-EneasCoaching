@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -20,8 +20,6 @@ export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
   const [acepta, setAcepta] = useState(false);
   useSeo();
 
-  if (perfil) return <Navigate to="/app" replace />;
-
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
 
   const enviar = async (e: React.FormEvent) => {
@@ -36,14 +34,33 @@ export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
     } finally { setEnviando(false); }
   };
 
+  // Un solo envío por toque: mientras se manda queda bloqueado, y después hay que esperar 30 segundos para pedir otro
+  const [recuperando, setRecuperando] = useState(false);
+  const [espera, setEspera] = useState(0);
+  const enCurso = useRef(false); // frena los toques seguidos antes de que React actualice el estado
+  useEffect(() => {
+    if (espera <= 0) return;
+    const id = setTimeout(() => setEspera(s => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [espera]);
   const recuperar = async () => {
+    if (enCurso.current || espera > 0) return;
     if (!f.email) { setError('Escribí tu email y volvé a tocar "Olvidé mi contraseña".'); return; }
-    setError('');
+    enCurso.current = true;
+    setError(''); setAviso(''); setRecuperando(true);
     try {
       await api('recuperar', { method: 'POST', body: { email: f.email } });
       setAviso('Te mandamos un correo con un link para crear una contraseña nueva. Revisá también spam.');
-    } catch (err: any) { setError(err.message); }
+      setEspera(30);
+    } catch (err: any) {
+      setError(err.message);
+      if (err.status === 429) setEspera(Number(err.datos?.espera) || 30);
+    }
+    enCurso.current = false;
+    setRecuperando(false);
   };
+
+  if (perfil) return <Navigate to="/app" replace />;
 
   return (
     <div className="min-h-screen grid md:grid-cols-2">
@@ -99,7 +116,9 @@ export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
             {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : modo === 'registro' ? 'Crear cuenta' : 'Ingresar'}
           </button>
           {modo === 'entrar' && (
-            <button type="button" onClick={recuperar} className="text-sm text-gris hover:text-oro">Olvidé mi contraseña</button>
+            <button type="button" onClick={recuperar} disabled={recuperando || espera > 0} className="text-sm text-gris hover:text-oro disabled:opacity-60 disabled:hover:text-gris disabled:cursor-not-allowed">
+              {recuperando ? 'Enviando el correo…' : espera > 0 ? `Podés pedir otro correo en ${espera} s` : 'Olvidé mi contraseña'}
+            </button>
           )}
         </form>
       </div>

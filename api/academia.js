@@ -663,10 +663,15 @@ export default async function handler(req, res) {
       const email = String(body.email || '').trim().toLowerCase();
       if (await intentosEn('recuperar', `ip:${ipDe(req)}`, 60) >= 10) return demasiados(res);
       await anotarIntento('recuperar', `ip:${ipDe(req)}`);
+      // Un correo cada 30 segundos por email, aunque toquen el botón varias veces o desde otra pestaña
+      if (email && await intentosEn('recuperar-email', `email:${email}`, 0.5) >= 1) {
+        return res.status(429).json({ error: 'Ya te mandamos el correo. Esperá unos segundos antes de pedir otro.', espera: 30 });
+      }
       // Se avisa si el email no está registrado. Para que no sirva para averiguar qué emails existen en masa,
       // los pedidos están limitados por IP (arriba).
       const { data: existe } = await sb.from('academia_perfiles').select('id').eq('email', email).maybeSingle();
       if (!existe) return res.status(404).json({ error: 'Ese email no está registrado. Revisalo o creá tu cuenta.' });
+      await anotarIntento('recuperar-email', `email:${email}`);
       const { error } = await clienteAuth().auth.resetPasswordForEmail(email, { redirectTo: `${env('ACADEMIA_URL')}/restablecer` });
       if (error) {
         console.error('recuperar contraseña:', error.status, error.message);
