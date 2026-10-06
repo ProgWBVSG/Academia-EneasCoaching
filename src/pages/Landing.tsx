@@ -10,6 +10,7 @@ import { useAuth } from '../lib/auth';
 import { wa } from '../lib/contacto';
 import { FAQ, INCLUYE_PRECIO } from '../contenido/publico';
 import { PieLegal, useSeo } from './Legal';
+import { trackCustom } from '../lib/metaPixel';
 import { usePrecio, useCuentaRegresiva, SelectorMoneda, PRECIO_USD, PRECIO_LISTA_USD, CUPO_LANZAMIENTO, CIERRE_LANZAMIENTO } from '../lib/precio';
 
 // Reglas de esta página: todo centrado, sin etiquetas arriba de los títulos y un texto
@@ -250,7 +251,7 @@ export function IconoWhatsApp({ className = '' }: { className?: string }) {
 function VideoPropio() {
   const ref = useRef<HTMLVideoElement>(null);
   const [empezado, setEmpezado] = useState(false);
-  const reproducir = () => { setEmpezado(true); ref.current?.play().catch(() => {}); };
+  const reproducir = () => { setEmpezado(true); trackCustom('VSL_Play'); ref.current?.play().catch(() => {}); };
   return (
     <>
       <video ref={ref} src={VSL} poster={VSL_PORTADA} controls={empezado} playsInline preload="metadata"
@@ -383,7 +384,7 @@ function BotonWhatsApp({ elevado }: { elevado: boolean }) {
 function VideoCecilia({ alReproducir }: { alReproducir: () => void }) {
   const embed = VSL ? urlEmbed(VSL) : null;
   const [cargado, setCargado] = useState(false);
-  const reproducir = () => { setCargado(true); alReproducir(); };
+  const reproducir = () => { setCargado(true); trackCustom('VSL_Play'); alReproducir(); };
   return (
     <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-tinta shadow-2xl shadow-oro/15 ring-1 ring-oro/30">
       {embed && cargado ? (

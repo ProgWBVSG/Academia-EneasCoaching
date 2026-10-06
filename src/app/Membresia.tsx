@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { Error } from '../components/ui';
 import { IconoWhatsApp } from '../pages/Landing';
 import { wa } from '../lib/contacto';
+import { trackEvent } from '../lib/metaPixel';
 
 // Pantalla para activar o renovar la membresía.
 // Argentina: débito automático con Mercado Pago o transferencia (sin comisión, se confirma a mano).
@@ -76,6 +77,7 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
   }, []);
 
   const ir = async (accion: 'suscribirme' | 'checkout-internacional') => {
+    trackEvent('InitiateCheckout', { content_name: 'Academia', value: op?.usd, currency: 'USD' });
     setCargando(accion); setError('');
     try {
       const { url } = await api<{ url: string }>(accion, { method: 'POST' });
@@ -84,6 +86,7 @@ export default function Membresia({ renovar = false }: { renovar?: boolean }) {
   };
 
   const avisar = async (via: 'local' | 'internacional' = 'local') => {
+    trackEvent('InitiateCheckout', { content_name: 'Academia', value: op?.usd, currency: 'USD' });
     setCargando(via === 'internacional' ? 'intl-aviso' : 'transferencia'); setError('');
     try {
       const r = await api<{ codigo: string; mensaje: string }>('transferencia-aviso', { method: 'POST', body: { meses, referencia, via } });

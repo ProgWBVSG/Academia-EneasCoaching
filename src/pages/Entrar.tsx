@@ -7,6 +7,7 @@ import Eneagrama from '../components/Eneagrama';
 import { Campo, Error } from '../components/ui';
 import { useSeo } from './Legal';
 import SelectorPais from '../components/SelectorPais';
+import { trackEvent } from '../lib/metaPixel';
 
 const PROFESIONES = ['Ninguna, es para mí', 'Psicóloga/o', 'Coach', 'Terapeuta', 'Abogada/o', 'RRHH', 'Líder de equipo', 'Docente', 'Psicopedagoga/o', 'Ventas o atención al cliente', 'Otra profesión'];
 
@@ -27,6 +28,7 @@ export default function Entrar({ modo }: { modo: 'entrar' | 'registro' }) {
     setEnviando(true); setError(''); setAviso('');
     try {
       const { sesion } = await api(modo, { method: 'POST', body: modo === 'registro' ? { ...f, acepta } : f });
+      if (modo === 'registro') trackEvent('CompleteRegistration', { content_name: 'Academia' });
       await iniciar(sesion);
       nav('/app');
     } catch (err: any) {

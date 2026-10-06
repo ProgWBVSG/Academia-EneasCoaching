@@ -16,6 +16,7 @@ import Equipos from './app/Equipos';
 import PerfilVista from './app/Perfil';
 import Admin from './app/Admin';
 import { Terminos, Privacidad, Arrepentimiento } from './pages/Legal';
+import MetaPixelTracker from './components/MetaPixelTracker';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { cargando, perfil } = useAuth();
@@ -28,6 +29,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <MetaPixelTracker />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/entrar" element={<Entrar modo="entrar" />} />
