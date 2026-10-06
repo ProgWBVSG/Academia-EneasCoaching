@@ -512,6 +512,7 @@ export default function Landing() {
           <span className="text-oro md:whitespace-nowrap">comienza por comprenderte a vos.</span>
         </h1>
         <p className="text-lg md:text-xl text-tinta font-semibold -mt-2 max-w-3xl">Cómo mejorar tus vínculos con tu familia, en tu trabajo, con tu equipo y con vos mismo.</p>
+        <p className="text-[clamp(11px,3.4vw,16px)] md:text-lg text-oro font-bold max-w-4xl -mt-3 text-balance">Comunidad de eneagrama para abogadas, psicólogas, coaches, líderes de equipo y RRHH</p>
         <div className="w-full max-w-4xl"><VideoCecilia alReproducir={() => setVioVideo(true)} /></div>
         <p className="text-lg md:text-xl text-gris max-w-2xl">
           El Eneagrama aplicado a tu trabajo y a tu vida.
